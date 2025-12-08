@@ -11,7 +11,7 @@
 **Cron style scheduler for asynchronous tasks in Django.**
 
 - setup recurring tasks via crontab syntax
-- lightweight helpers build [APScheduler]
+- lightweight helpers build on top of [APScheduler]
 - [Sentry] cron monitor support
 
 [![PyPi Version](https://img.shields.io/pypi/v/django-crontask.svg)](https://pypi.python.org/pypi/django-crontask/)
@@ -38,7 +38,7 @@ INSTALLED_APPS = [
 ]
 ```
 
-Finally, you lauch the scheduler in a separate process:
+Finally, you launch the scheduler in a separate process:
 
 ```ShellSession
 python3 manage.py crontask
@@ -99,11 +99,11 @@ be at 12:00:45.
 If you use [Sentry] you can add cron monitors to your tasks.
 The monitor's slug will be the actor's name. Like `my_task` in the example above.
 
-### The crontab command
+### The crontask command
 
 ```ShellSession
-$ python3 manage.py crontab --help
-usage: manage.py crontab [-h] [--no-task-loading] [--no-heartbeat] [--version] [-v {0,1,2,3}]
+$ python3 manage.py crontask --help
+usage: manage.py crontask [-h] [--no-task-loading] [--no-heartbeat] [--version] [-v {0,1,2,3}]
                          [--settings SETTINGS] [--pythonpath PYTHONPATH] [--traceback] [--no-color]
                          [--force-color] [--skip-checks]
 
