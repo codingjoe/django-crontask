@@ -2,9 +2,9 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./images/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="./images/logo-light.svg">
-    <img alt="Django crontask: Cron style scheduler for Django's task framework" src="./images/logo-light.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/codingjoe/django-crontask/raw/main/images/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/codingjoe/django-crontask/raw/main/images/logo-light.svg">
+    <img alt="Django CronTask: Cron style scheduler for Django's task framework" src="https://github.com/codingjoe/django-crontask/raw/main/images/logo-light.svg">
   </picture>
 </p>
 

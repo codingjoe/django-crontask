@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="320" font-family="Segoe UI, system-ui, sans-serif" viewBox="0 0 1280 640">
   <circle cx="260" cy="320" r="200" fill="#f1fff7"/>
   <path fill="#092e20" d="M262 196c-67.452 0-122.532 53.316-125.7 120H100l60 79.5 60-79.5h-35.7c3.084-40.212 36.72-72 77.7-72 43.008 0 78 34.992 78 78s-34.992 78-78 78a77.76 77.76 0 0 1-56.736-24.636l-29.124 38.592A125.4 125.4 0 0 0 262 448c69.48 0 126-56.52 126-126s-56.52-126-126-126"/>
-  <text x="241" y="100" font-size="100" font-weight="bold" transform="matrix(1.6 0 0 1.6 120 120)" fill="#c9d1d9">
+  <text x="241" y="100" font-size="64" font-weight="bold" transform="matrix(1.6 0 0 1.6 120 120)" fill="#f1fff7">
     Django
   </text>
   <text x="241" y="190" font-size="100" font-weight="bold" transform="matrix(1.6 0 0 1.6 120 120)" fill="#c9d1d9">
-    crontask
+    CronTask
   </text>
   <text x="241" y="224" font-size="18" font-style="italic" transform="matrix(1.6 0 0 1.6 120 120)" fill="#c9d1d9">
     Cron style scheduler for Django's task framework
