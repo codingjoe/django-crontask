@@ -87,7 +87,8 @@ class Command(BaseCommand):
         their tasks with the scheduler.
         """
         for app in apps.get_app_configs():
-            if app.name == "contask":
+            if app.name == "crontask":
+                # Our heartbeat is loaded earlier
                 continue
             if app.ready:
                 try:
