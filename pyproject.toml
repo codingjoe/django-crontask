@@ -37,11 +37,6 @@ requires-python = ">=3.12"
 dependencies = ["apscheduler", "django>=6.0"]
 
 [project.optional-dependencies]
-test = [
-  "pytest",
-  "pytest-cov",
-  "pytest-django",
-]
 sentry = ["sentry-sdk"]
 redis = ["redis"]
 
@@ -96,6 +91,9 @@ convention = "pep257"
 
 [dependency-groups]
 dev = [
+  { include-group = "test" },
+]
+test = [
   "pytest",
   "pytest-cov",
   "pytest-django",
