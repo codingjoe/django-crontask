@@ -78,6 +78,13 @@ def test_cron__error(schedule):
     )
 
 
+def test_cron_arguments_error():
+    assert not scheduler.remove_all_jobs()
+    with pytest.raises(ValueError) as e:
+        tasks.cron("* * * * 1", hour=1)(tasks.heartbeat)
+    assert "Unable to mix `schedule` and other fields" in str(e.value)
+
+
 def test_interval__seconds():
     assert not scheduler.remove_all_jobs()
     assert interval(seconds=30)(tasks.heartbeat)

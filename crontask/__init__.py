@@ -36,7 +36,18 @@ class LazyBlockingScheduler(BlockingScheduler):
 scheduler = LazyBlockingScheduler()
 
 
-def cron(schedule):
+def cron(
+    schedule=None,
+    *,
+    year=None,
+    month=None,
+    day=None,
+    week=None,
+    day_of_week=None,
+    hour=None,
+    minute=None,
+    second=None,
+):
     """
     Run task on a scheduler with a cron schedule.
 
@@ -46,6 +57,12 @@ def cron(schedule):
         def cron_test():
             print("Cron test")
 
+        or pass values individually
+
+        @cron(hour=0, minute=0)
+        @task
+        def midnight_cron_test():
+            print("Midnight test")
 
     Please don't forget to set up a sentry monitor for the actor, otherwise you won't
     get any notifications if the cron job fails.
@@ -66,6 +83,24 @@ def cron(schedule):
                 "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
             )
 
+        if schedule:
+            trigger = CronTrigger.from_crontab(
+                schedule,
+                timezone=timezone.get_default_timezone(),
+            )
+        else:
+            trigger = CronTrigger(
+                year=year,
+                month=month,
+                day=day,
+                week=week,
+                day_of_week=day_of_week,
+                hour=hour,
+                minute=minute,
+                second=second,
+                timezone=timezone.get_default_timezone(),
+            )
+
         if monitor is not None:
             task = type(task)(
                 priority=task.priority,
@@ -78,10 +113,7 @@ def cron(schedule):
 
         scheduler.add_job(
             task.enqueue,
-            CronTrigger.from_crontab(
-                schedule,
-                timezone=timezone.get_default_timezone(),
-            ),
+            trigger=trigger,
             name=task.name,
         )
         # We don't add the Sentry monitor on the actor itself, because we only want to
