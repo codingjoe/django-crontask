@@ -73,17 +73,19 @@ def cron(
     """
 
     def decorator(task):
-        *_, day_schedule = schedule.split(" ")
-
-        # CronTrigger uses Python's timezone dependent first weekday,
-        # so in Berlin monday is 0 and sunday is 6. We use literals to avoid
-        # confusion. Literals are also more readable and crontab conform.
-        if any(i.isdigit() for i in day_schedule):
-            raise ValueError(
-                "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
-            )
-
         if schedule:
+            if any([year, month, day, week, day_of_week, hour, minute, second]):
+                raise ValueError("Unable to mix `schedule` and other fields")
+            *_, day_schedule = schedule.split(" ")
+
+            # CronTrigger uses Python's timezone dependent first weekday,
+            # so in Berlin monday is 0 and sunday is 6. We use literals to avoid
+            # confusion. Literals are also more readable and crontab conform.
+            if any(i.isdigit() for i in day_schedule):
+                raise ValueError(
+                    "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
+                )
+
             trigger = CronTrigger.from_crontab(
                 schedule,
                 timezone=timezone.get_default_timezone(),
