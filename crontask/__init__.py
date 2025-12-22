@@ -37,16 +37,16 @@ scheduler = LazyBlockingScheduler()
 
 
 def cron(
-    schedule=None,
+    schedule: str | None = None,
     *,
-    year=None,
-    month=None,
-    day=None,
-    week=None,
-    day_of_week=None,
-    hour=None,
-    minute=None,
-    second=None,
+    year: int | str | None = None,
+    month: int | str | None = None,
+    day: int | str | None = None,
+    week: int | str | None = None,
+    day_of_week: int | str | None = None,
+    hour: int | str | None = None,
+    minute: int | str | None = None,
+    second: int | str | None = None,
 ):
     """
     Run task on a scheduler with a cron schedule.
@@ -57,7 +57,7 @@ def cron(
         def cron_test():
             print("Cron test")
 
-        or pass values individually
+    ,or pass values individually:
 
         @cron(hour=0, minute=0)
         @task
