@@ -32,15 +32,17 @@ def test_cron__day_of_week():
 
 
 @pytest.mark.parametrize(
-    "schedule",
+    "kwargs",
     [
-        "0 0 * * Tue-Wed",
-        "0 0 * * Tue,Wed",
+        {"schedule": "0 0 * * Tue-Wed"},
+        {"schedule": "0 0 * * Tue,Wed"},
+        {"minute": 0, "hour": 0, "day_of_week": "Tue-Wed"},
+        {"minute": 0, "hour": 0, "day_of_week": "Tue,Wed"},
     ],
 )
-def test_cron_day_range(schedule):
+def test_cron_day_range(kwargs):
     assert not scheduler.remove_all_jobs()
-    assert tasks.cron(schedule)(tasks.heartbeat)
+    assert tasks.cron(**kwargs)(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)  # Friday
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
