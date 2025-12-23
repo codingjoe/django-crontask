@@ -66,10 +66,16 @@ from django.tasks import task
 from crontask import cron
 
 
-@cron("*/5 * * * *")  # every 5 minutes
+@cron("*/5 * * * *")  # every 5 minutes using cron format
 @task
 def my_task():
     my_task.logger.info("Hello World")
+
+
+@cron(hour=0, minute=0)  # At midnight using individual parameters
+@task
+def midnight_task():
+    my_task.logger.info("Midnight cleanup task")
 ```
 
 ### Interval
