@@ -32,15 +32,17 @@ def test_cron__day_of_week():
 
 
 @pytest.mark.parametrize(
-    "schedule",
+    "kwargs",
     [
-        "0 0 * * Tue-Wed",
-        "0 0 * * Tue,Wed",
+        {"schedule": "0 0 * * Tue-Wed"},
+        {"schedule": "0 0 * * Tue,Wed"},
+        {"minute": 0, "hour": 0, "day_of_week": "Tue-Wed"},
+        {"minute": 0, "hour": 0, "day_of_week": "Tue,Wed"},
     ],
 )
-def test_cron_day_range(schedule):
+def test_cron_day_range(kwargs):
     assert not scheduler.remove_all_jobs()
-    assert tasks.cron(schedule)(tasks.heartbeat)
+    assert tasks.cron(**kwargs)(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)  # Friday
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
@@ -61,21 +63,31 @@ def test_cron__every_15_minutes():
 
 
 @pytest.mark.parametrize(
-    "schedule",
+    "kwargs",
     [
-        "* * * * 1",
-        "* * * * 2-3",
-        "* * * * 1,7",
+        {"schedule": "* * * * 1"},
+        {"schedule": "* * * * 2-3"},
+        {"schedule": "* * * * 1,7"},
+        {"day_of_week": 1},
+        {"day_of_week": "2-3"},
+        {"day_of_week": "1,7"},
     ],
 )
-def test_cron__error(schedule):
+def test_cron__error(kwargs):
     assert not scheduler.remove_all_jobs()
     with pytest.raises(ValueError) as e:
-        tasks.cron(schedule)(tasks.heartbeat)
+        tasks.cron(**kwargs)(tasks.heartbeat)
     assert (
         "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
         in str(e.value)
     )
+
+
+def test_cron_arguments_error():
+    assert not scheduler.remove_all_jobs()
+    with pytest.raises(ValueError) as e:
+        tasks.cron("* * * * 1", hour=1)(tasks.heartbeat)
+    assert "Unable to mix `schedule` and other fields" in str(e.value)
 
 
 def test_interval__seconds():
