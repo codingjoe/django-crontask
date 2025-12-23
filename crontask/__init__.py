@@ -43,7 +43,7 @@ def cron(
     month: int | str | None = None,
     day: int | str | None = None,
     week: int | str | None = None,
-    day_of_week: int | str | None = None,
+    day_of_week: str | None = None,
     hour: int | str | None = None,
     minute: int | str | None = None,
     second: int | str | None = None,
@@ -72,6 +72,12 @@ def cron(
     The monitors timezone should be set to Europe/Berlin.
     """
 
+    def check_day_schedule(values: str):
+        if any(i.isdigit() for i in values):
+            raise ValueError(
+                "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
+            )
+
     def decorator(task):
         if schedule:
             if any([year, month, day, week, day_of_week, hour, minute, second]):
@@ -81,16 +87,14 @@ def cron(
             # CronTrigger uses Python's timezone dependent first weekday,
             # so in Berlin monday is 0 and sunday is 6. We use literals to avoid
             # confusion. Literals are also more readable and crontab conform.
-            if any(i.isdigit() for i in day_schedule):
-                raise ValueError(
-                    "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
-                )
+            check_day_schedule(day_schedule)
 
             trigger = CronTrigger.from_crontab(
                 schedule,
                 timezone=timezone.get_default_timezone(),
             )
         else:
+            check_day_schedule(str(day_of_week))
             trigger = CronTrigger(
                 year=year,
                 month=month,

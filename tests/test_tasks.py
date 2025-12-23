@@ -63,17 +63,20 @@ def test_cron__every_15_minutes():
 
 
 @pytest.mark.parametrize(
-    "schedule",
+    "kwargs",
     [
-        "* * * * 1",
-        "* * * * 2-3",
-        "* * * * 1,7",
+        {"schedule": "* * * * 1"},
+        {"schedule": "* * * * 2-3"},
+        {"schedule": "* * * * 1,7"},
+        {"day_of_week": 1},
+        {"day_of_week": "2-3"},
+        {"day_of_week": "1,7"},
     ],
 )
-def test_cron__error(schedule):
+def test_cron__error(kwargs):
     assert not scheduler.remove_all_jobs()
     with pytest.raises(ValueError) as e:
-        tasks.cron(schedule)(tasks.heartbeat)
+        tasks.cron(**kwargs)(tasks.heartbeat)
     assert (
         "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
         in str(e.value)
