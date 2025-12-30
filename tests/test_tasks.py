@@ -2,7 +2,9 @@ import datetime
 import zoneinfo
 
 import pytest
+from apscheduler.triggers.interval import IntervalTrigger
 from crontask import cron, interval, scheduler, tasks
+from django.utils import timezone
 
 DEFAULT_TZINFO = zoneinfo.ZoneInfo(key="Europe/Berlin")
 
@@ -85,6 +87,17 @@ def test_cron__error(schedule):
         "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
         in str(e.value)
     )
+
+
+def test_cron__custom_trigger():
+    every_30_secs = IntervalTrigger(
+        seconds=30, timezone=timezone.get_default_timezone()
+    )
+    assert cron(every_30_secs)(tasks.heartbeat)
+    init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)
+    assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
+        init, init
+    ) == datetime.datetime(2021, 1, 1, 0, 0, 30, tzinfo=DEFAULT_TZINFO)
 
 
 def test_interval__seconds():
