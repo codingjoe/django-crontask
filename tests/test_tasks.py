@@ -2,7 +2,7 @@ import datetime
 import zoneinfo
 
 import pytest
-from crontask import interval, scheduler, tasks
+from crontask import cron, interval, scheduler, tasks
 
 DEFAULT_TZINFO = zoneinfo.ZoneInfo(key="Europe/Berlin")
 
@@ -15,7 +15,7 @@ def test_heartbeat(caplog):
 
 def test_cron__stars():
     assert not scheduler.remove_all_jobs()
-    assert tasks.cron("* * * * *")(tasks.heartbeat)
+    assert cron("* * * * *")(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
@@ -24,7 +24,7 @@ def test_cron__stars():
 
 def test_cron__day_of_week():
     assert not scheduler.remove_all_jobs()
-    assert tasks.cron("* * * * Mon")(tasks.heartbeat)
+    assert cron("* * * * Mon")(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)  # Friday
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
@@ -40,7 +40,7 @@ def test_cron__day_of_week():
 )
 def test_cron_day_range(schedule):
     assert not scheduler.remove_all_jobs()
-    assert tasks.cron(schedule)(tasks.heartbeat)
+    assert cron(schedule)(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)  # Friday
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
@@ -53,11 +53,20 @@ def test_cron_day_range(schedule):
 
 def test_cron__every_15_minutes():
     assert not scheduler.remove_all_jobs()
-    assert tasks.cron("*/15 * * * *")(tasks.heartbeat)
+    assert cron("*/15 * * * *")(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
     ) == datetime.datetime(2021, 1, 1, 0, 15, tzinfo=DEFAULT_TZINFO)
+
+
+def test_cron__trigger_attribute():
+    assert not scheduler.remove_all_jobs()
+    task = cron("*/10 * * * *")(tasks.heartbeat)
+    assert (
+        str(task.trigger)
+        == "cron[month='*', day='*', day_of_week='*', hour='*', minute='*/10']"
+    )
 
 
 @pytest.mark.parametrize(
@@ -71,7 +80,7 @@ def test_cron__every_15_minutes():
 def test_cron__error(schedule):
     assert not scheduler.remove_all_jobs()
     with pytest.raises(ValueError) as e:
-        tasks.cron(schedule)(tasks.heartbeat)
+        cron(schedule)(tasks.heartbeat)
     assert (
         "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
         in str(e.value)
@@ -80,7 +89,8 @@ def test_cron__error(schedule):
 
 def test_interval__seconds():
     assert not scheduler.remove_all_jobs()
-    assert interval(seconds=30)(tasks.heartbeat)
+    with pytest.deprecated_call():
+        assert interval(seconds=30)(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
