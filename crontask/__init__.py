@@ -43,7 +43,7 @@ def cron_task_factory(
 
     @dataclass(frozen=True, slots=True, kw_only=True)
     class CronTask(type(task)):
-        trigger: CronTrigger
+        trigger: BaseTrigger
 
     return CronTask(
         priority=task.priority,
