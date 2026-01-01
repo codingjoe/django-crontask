@@ -64,11 +64,12 @@ def test_cron__every_15_minutes():
 
 def test_cron__trigger_attribute():
     assert not scheduler.remove_all_jobs()
-    task = cron("*/10 * * * *")(tasks.heartbeat)
-    assert (
-        str(task.trigger)
-        == "cron[month='*', day='*', day_of_week='*', hour='*', minute='*/10']"
-    )
+    cron("*/10 * * * *")(tasks.heartbeat)
+    scheduler.get_jobs()[0].modify(next_run_time=None)
+    init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)
+    assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
+        init, init
+    ) == datetime.datetime(2021, 1, 1, 0, 10, tzinfo=DEFAULT_TZINFO)
 
 
 @pytest.mark.parametrize(
