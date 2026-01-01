@@ -72,27 +72,27 @@ def my_task():
     my_task.logger.info("Hello World")
 ```
 
-### Interval
+### Advanced Trigger Usage
 
-If you want to run a task more frequently than once a minute, you can use the
-`interval` decorator.
+You can also use other trigger types from [APScheduler].
+Just import the trigger and use it in the `cron` decorator.
 
 ```python
-# tasks.py
 from django.tasks import task
-from crontask import interval
+from django.utils import timezone
+from apscheduler.triggers.interval import IntervalTrigger
+from crontask import cron
+
+every_ten_minutes = IntervalTrigger(
+    minutes=10, timezone=timezone.get_default_timezone()
+)
 
 
-@interval(seconds=30)
+@cron(every_ten_minutes)
 @task
-def my_task():
-    my_task.logger.info("Hello World")
+def my_interval_task():
+    my_interval_task.logger.info("Hello from interval task")
 ```
-
-Please note that the interval is relative to the time the scheduler is started.
-For example, if you start the scheduler at 12:00:00, the first run will be at
-12:00:30. However, if you restart the scheduler at 12:00:15, the first run will
-be at 12:00:45.
 
 ### Sentry Cron Monitors
 

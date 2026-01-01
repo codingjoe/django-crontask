@@ -132,3 +132,6 @@ dmypy.json
 # Packaging
 
 crontask/_version.py
+
+# uv
+uv.lock

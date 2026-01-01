@@ -1,19 +1,18 @@
 """Cron style scheduler for Django's task framework."""
 
+import typing
+import warnings
 from unittest.mock import Mock
 
 from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+from django.tasks import Task
 from django.utils import timezone
 
 from . import _version
-
-try:
-    from sentry_sdk.crons import monitor
-except ImportError:
-    monitor = None
 
 __version__ = _version.version
 VERSION = _version.version_tuple
@@ -36,7 +35,7 @@ class LazyBlockingScheduler(BlockingScheduler):
 scheduler = LazyBlockingScheduler()
 
 
-def cron(schedule):
+def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
     """
     Run task on a scheduler with a cron schedule.
 
@@ -55,33 +54,41 @@ def cron(schedule):
     The monitors timezone should be set to Europe/Berlin.
     """
 
-    def decorator(task):
-        *_, day_schedule = schedule.split(" ")
-
-        # CronTrigger uses Python's timezone dependent first weekday,
-        # so in Berlin monday is 0 and sunday is 6. We use literals to avoid
-        # confusion. Literals are also more readable and crontab conform.
-        if any(i.isdigit() for i in day_schedule):
-            raise ValueError(
-                "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
-            )
-
-        if monitor is not None:
-            task = type(task)(
-                priority=task.priority,
-                func=monitor(task.name)(task.func),
-                queue_name=task.queue_name,
-                backend=task.backend,
-                takes_context=task.takes_context,
-                run_after=task.run_after,
-            )
-
-        scheduler.add_job(
-            task.enqueue,
-            CronTrigger.from_crontab(
+    def decorator(task: Task) -> Task:
+        trigger = schedule
+        if isinstance(schedule, str):
+            *_, day_schedule = schedule.split(" ")
+            # CronTrigger uses Python's timezone dependent first weekday,
+            # so in Berlin monday is 0 and sunday is 6. We use literals to avoid
+            # confusion. Literals are also more readable and crontab conform.
+            if any(i.isdigit() for i in day_schedule):
+                raise ValueError(
+                    "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
+                )
+            trigger = CronTrigger.from_crontab(
                 schedule,
                 timezone=timezone.get_default_timezone(),
-            ),
+            )
+
+        try:
+            from sentry_sdk.crons import monitor
+        except ImportError:
+            fn = task.func
+        else:
+            fn = monitor(task.name)(task.func)
+
+        task = type(task)(
+            priority=task.priority,
+            func=fn,
+            queue_name=task.queue_name,
+            backend=task.backend,
+            takes_context=task.takes_context,
+            run_after=task.run_after,
+        )
+
+        scheduler.add_job(
+            func=task.enqueue,
+            trigger=trigger,
             name=task.name,
         )
         # We don't add the Sentry monitor on the actor itself, because we only want to
@@ -95,39 +102,19 @@ def interval(*, seconds):
     """
     Run task on a periodic interval.
 
-    Usage:
-        @interval(seconds=30)
-        @task
-        def interval_test():
-            print("Interval test")
-
-    Please note that the interval is relative to the time the scheduler is started. For
-    example, if you start the scheduler at 12:00:00, the first run will be at 12:00:30.
-    However, if you restart the scheduler at 12:00:15, the first run will be at
-    12:00:45.
-
-    For an interval that is consistent with the clock, use the `cron` decorator instead.
+    The interval decorator is deprecated and will be removed in a future release.
+    Please use the cron decorator with an 'IntervalTrigger' instead.
     """
+    warnings.warn(
+        "The interval decorator is deprecated and will be removed in a future release. "
+        "Please use the cron decorator with an 'IntervalTrigger' instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    def decorator(task):
-        if monitor is not None:
-            task = type(task)(
-                priority=task.priority,
-                func=monitor(task.name)(task.func),
-                queue_name=task.queue_name,
-                backend=task.backend,
-                takes_context=task.takes_context,
-                run_after=task.run_after,
-            )
-
-        scheduler.add_job(
-            task.enqueue,
-            IntervalTrigger(
-                seconds=seconds,
-                timezone=timezone.get_default_timezone(),
-            ),
-            name=task.name,
+    return cron(
+        IntervalTrigger(
+            seconds=seconds,
+            timezone=timezone.get_default_timezone(),
         )
-        return task
-
-    return decorator
+    )
