@@ -91,6 +91,7 @@ def test_cron__error(schedule):
 
 
 def test_cron__custom_trigger():
+    assert not scheduler.remove_all_jobs()
     every_30_secs = IntervalTrigger(
         seconds=30, timezone=timezone.get_default_timezone()
     )
