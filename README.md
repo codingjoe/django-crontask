@@ -62,14 +62,18 @@ CRONTASK = {
 
 ```python
 # tasks.py
+import logging
+
 from django.tasks import task
 from crontask import cron
+
+logger = logging.getLogger(__name__)
 
 
 @cron("*/5 * * * *")  # every 5 minutes
 @task
 def my_task():
-    my_task.logger.info("Hello World")
+    logger.info("Hello World")
 ```
 
 ### Advanced Trigger Usage
@@ -78,10 +82,14 @@ You can also use other trigger types from [APScheduler].
 Just import the trigger and use it in the `cron` decorator.
 
 ```python
+import logging
+
 from django.tasks import task
 from django.utils import timezone
 from apscheduler.triggers.interval import IntervalTrigger
 from crontask import cron
+
+logger = logging.getLogger(__name__)
 
 every_ten_minutes = IntervalTrigger(
     minutes=10, timezone=timezone.get_default_timezone()
@@ -91,7 +99,7 @@ every_ten_minutes = IntervalTrigger(
 @cron(every_ten_minutes)
 @task
 def my_interval_task():
-    my_interval_task.logger.info("Hello from interval task")
+    logger.info("Hello from interval task")
 ```
 
 ### Sentry Cron Monitors
