@@ -5,6 +5,7 @@ import pytest
 from apscheduler.triggers.interval import IntervalTrigger
 from crontask import cron, interval, scheduler, tasks
 from django.utils import timezone
+
 from tests.testapp.tasks import my_task
 
 DEFAULT_TZINFO = zoneinfo.ZoneInfo(key="Europe/Berlin")
