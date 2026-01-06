@@ -6,6 +6,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 from crontask import cron, interval, scheduler, tasks
 from django.utils import timezone
 
+from tests.testapp.tasks import my_task
+
 DEFAULT_TZINFO = zoneinfo.ZoneInfo(key="Europe/Berlin")
 
 
@@ -13,6 +15,13 @@ def test_heartbeat(caplog):
     with caplog.at_level("INFO"):
         tasks.heartbeat.func()
     assert "ﮩ٨ـﮩﮩ٨ـ♡ﮩ٨ـﮩﮩ٨ـ" in caplog.text
+
+
+def test_my_task(caplog):
+    """Regression test for logger usage in task decorated functions."""
+    with caplog.at_level("INFO"):
+        my_task.func()
+    assert "Hello World!" in caplog.text
 
 
 def test_cron__stars():
