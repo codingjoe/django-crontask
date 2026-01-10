@@ -70,7 +70,7 @@ class Command(BaseCommand):
             utils.extend_lock,
             IntervalTrigger(seconds=conf.get_settings().LOCK_REFRESH_INTERVAL),
             args=(lock, scheduler),
-            name="contask.utils.lock.extend",
+            name="crontask.utils.lock.extend",
         )
         try:
             scheduler.start()
