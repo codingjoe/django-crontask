@@ -47,6 +47,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
   pytest-windows-macos:
+    permissions:
+      contents: read
     strategy:
       matrix:
         os:
