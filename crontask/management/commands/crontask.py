@@ -63,15 +63,9 @@ class Command(BaseCommand):
     def launch_scheduler(self, lock, scheduler):
         match sys.platform:
             case "win32":
-                try:
-                    signal.signal(signal.SIGBREAK, kill_softly)
-                except AttributeError:
-                    pass
+                signal.signal(signal.SIGBREAK, kill_softly)
             case _:
-                try:
-                    signal.signal(signal.SIGHUP, kill_softly)
-                except AttributeError:
-                    pass
+                signal.signal(signal.SIGHUP, kill_softly)
         signal.signal(signal.SIGTERM, kill_softly)
         signal.signal(signal.SIGINT, kill_softly)
         self.stdout.write(self.style.SUCCESS("Starting scheduler…"))
