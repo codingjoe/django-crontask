@@ -124,4 +124,3 @@ class Testcrontask:
                 assert not any(
                     sig == getattr(signal, "SIGHUP", None) for sig in signal_calls
                 )
-
