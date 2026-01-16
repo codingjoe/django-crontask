@@ -1,5 +1,7 @@
 import io
-from unittest.mock import Mock
+import signal
+import sys
+from unittest.mock import Mock, patch
 
 import pytest
 from crontask import utils
@@ -76,3 +78,49 @@ class Testcrontask:
             assert "Shutting down scheduler…" in stdout.getvalue()
         scheduler.shutdown.assert_called_once()
         scheduler.start.assert_called_once()
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_launch_scheduler_unix_signals(self, monkeypatch):
+        """Test signal registration on Unix-like systems."""
+        scheduler = Mock()
+        scheduler.start.side_effect = KeyboardInterrupt()
+        monkeypatch.setattr(crontask, "scheduler", scheduler)
+
+        signal_calls = []
+        original_signal = signal.signal
+
+        def mock_signal(signum, handler):
+            signal_calls.append(signum)
+            return original_signal(signum, handler)
+
+        with patch("signal.signal", side_effect=mock_signal):
+            with io.StringIO() as stdout:
+                call_command("crontask", stdout=stdout)
+                assert signal.SIGHUP in signal_calls
+                assert signal.SIGTERM in signal_calls
+                assert signal.SIGINT in signal_calls
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific test")
+    def test_launch_scheduler_windows_signals(self, monkeypatch):
+        """Test signal registration on Windows."""
+        scheduler = Mock()
+        scheduler.start.side_effect = KeyboardInterrupt()
+        monkeypatch.setattr(crontask, "scheduler", scheduler)
+
+        signal_calls = []
+        original_signal = signal.signal
+
+        def mock_signal(signum, handler):
+            signal_calls.append(signum)
+            return original_signal(signum, handler)
+
+        with patch("signal.signal", side_effect=mock_signal):
+            with io.StringIO() as stdout:
+                call_command("crontask", stdout=stdout)
+                assert signal.SIGTERM in signal_calls
+                assert signal.SIGINT in signal_calls
+                if hasattr(signal, "SIGBREAK"):
+                    assert signal.SIGBREAK in signal_calls
+                assert not any(
+                    sig == getattr(signal, "SIGHUP", None) for sig in signal_calls
+                )

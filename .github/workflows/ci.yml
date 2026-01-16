@@ -15,7 +15,8 @@ jobs:
       - uses: actions/upload-artifact@v6
         with:
           path: dist/*
-  pytest:
+  pytest-linux:
+    name: Pytest
     strategy:
       matrix:
         os:
@@ -45,6 +46,29 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv run ${{ matrix.extras }} --with django~=${{ matrix.django-version }}.0 pytest
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+  pytest-windows-macos:
+    name: Pytest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        os:
+          - "windows-latest"
+          - "macos-latest"
+        python-version:
+          - "3.13"
+        django-version:
+          - "6.0"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: uv run --with django~=${{ matrix.django-version }}.0 pytest
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

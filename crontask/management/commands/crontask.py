@@ -1,5 +1,6 @@
 import importlib
 import signal
+import sys
 
 from apscheduler.triggers.interval import IntervalTrigger
 from django.apps import apps
@@ -60,7 +61,11 @@ class Command(BaseCommand):
             self.stderr.write("Another scheduler is already running.")
 
     def launch_scheduler(self, lock, scheduler):
-        signal.signal(signal.SIGHUP, kill_softly)
+        match sys.platform:
+            case "win32":
+                signal.signal(signal.SIGBREAK, kill_softly)
+            case _:
+                signal.signal(signal.SIGHUP, kill_softly)
         signal.signal(signal.SIGTERM, kill_softly)
         signal.signal(signal.SIGINT, kill_softly)
         self.stdout.write(self.style.SUCCESS("Starting scheduler…"))
