@@ -21,7 +21,7 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Intended Audience :: Developers",
   "Operating System :: Microsoft :: Windows",
-  "Operating System :: MacOS",
+  "Operating System :: MacOS :: MacOS X",
   "Operating System :: POSIX",
   "Topic :: Communications :: Email",
   "Topic :: Text Processing :: Markup :: Markdown",

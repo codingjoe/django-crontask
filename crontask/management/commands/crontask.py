@@ -65,17 +65,15 @@ class Command(BaseCommand):
             case "win32":
                 try:
                     signal.signal(signal.SIGBREAK, kill_softly)
-                except (AttributeError, OSError):
+                except AttributeError:
                     pass
-                signal.signal(signal.SIGTERM, kill_softly)
-                signal.signal(signal.SIGINT, kill_softly)
             case _:
                 try:
                     signal.signal(signal.SIGHUP, kill_softly)
-                except (AttributeError, OSError):
+                except AttributeError:
                     pass
-                signal.signal(signal.SIGTERM, kill_softly)
-                signal.signal(signal.SIGINT, kill_softly)
+        signal.signal(signal.SIGTERM, kill_softly)
+        signal.signal(signal.SIGINT, kill_softly)
         self.stdout.write(self.style.SUCCESS("Starting scheduler…"))
         # Periodically extend TTL of lock if needed
         # https://redis-py.readthedocs.io/en/stable/lock.html#redis.lock.Lock.extend
