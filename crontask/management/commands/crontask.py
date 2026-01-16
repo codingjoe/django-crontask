@@ -1,5 +1,6 @@
 import importlib
 import signal
+import sys
 
 from apscheduler.triggers.interval import IntervalTrigger
 from django.apps import apps
@@ -60,9 +61,25 @@ class Command(BaseCommand):
             self.stderr.write("Another scheduler is already running.")
 
     def launch_scheduler(self, lock, scheduler):
-        signal.signal(signal.SIGHUP, kill_softly)
-        signal.signal(signal.SIGTERM, kill_softly)
-        signal.signal(signal.SIGINT, kill_softly)
+        # Register signal handlers for graceful shutdown
+        # Use EAFP pattern and OS-specific signal handling
+        match sys.platform:
+            case "win32":
+                # Windows: SIGHUP not available, use SIGBREAK instead
+                try:
+                    signal.signal(signal.SIGBREAK, kill_softly)
+                except (AttributeError, OSError):
+                    pass  # SIGBREAK might not be available in all Windows environments
+                signal.signal(signal.SIGTERM, kill_softly)
+                signal.signal(signal.SIGINT, kill_softly)
+            case _:
+                # Unix-like systems: SIGHUP, SIGTERM, SIGINT all available
+                try:
+                    signal.signal(signal.SIGHUP, kill_softly)
+                except (AttributeError, OSError):
+                    pass  # SIGHUP might not be available in some environments
+                signal.signal(signal.SIGTERM, kill_softly)
+                signal.signal(signal.SIGINT, kill_softly)
         self.stdout.write(self.style.SUCCESS("Starting scheduler…"))
         # Periodically extend TTL of lock if needed
         # https://redis-py.readthedocs.io/en/stable/lock.html#redis.lock.Lock.extend

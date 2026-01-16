@@ -1,5 +1,7 @@
 import io
-from unittest.mock import Mock
+import signal
+import sys
+from unittest.mock import Mock, patch
 
 import pytest
 from crontask import utils
@@ -76,3 +78,76 @@ class Testcrontask:
             assert "Shutting down scheduler…" in stdout.getvalue()
         scheduler.shutdown.assert_called_once()
         scheduler.start.assert_called_once()
+
+    def test_launch_scheduler_unix_signals(self, monkeypatch):
+        """Test signal registration on Unix-like systems."""
+        scheduler = Mock()
+        scheduler.start.side_effect = KeyboardInterrupt()
+        monkeypatch.setattr(crontask, "scheduler", scheduler)
+
+        # Mock sys.platform to be non-Windows
+        with patch.object(sys, "platform", "linux"):
+            signal_calls = []
+            original_signal = signal.signal
+
+            def mock_signal(signum, handler):
+                signal_calls.append(signum)
+                return original_signal(signum, handler)
+
+            with patch("signal.signal", side_effect=mock_signal):
+                with io.StringIO() as stdout:
+                    call_command("crontask", stdout=stdout)
+                    # Verify SIGHUP, SIGTERM, and SIGINT were registered
+                    assert signal.SIGTERM in signal_calls
+                    assert signal.SIGINT in signal_calls
+                    if hasattr(signal, "SIGHUP"):
+                        assert signal.SIGHUP in signal_calls
+
+    def test_launch_scheduler_windows_signals(self, monkeypatch):
+        """Test signal registration on Windows."""
+        scheduler = Mock()
+        scheduler.start.side_effect = KeyboardInterrupt()
+        monkeypatch.setattr(crontask, "scheduler", scheduler)
+
+        # Mock sys.platform to be Windows
+        with patch.object(sys, "platform", "win32"):
+            signal_calls = []
+            original_signal = signal.signal
+
+            def mock_signal(signum, handler):
+                signal_calls.append(signum)
+                return original_signal(signum, handler)
+
+            with patch("signal.signal", side_effect=mock_signal):
+                with io.StringIO() as stdout:
+                    call_command("crontask", stdout=stdout)
+                    # Verify SIGTERM and SIGINT were registered
+                    assert signal.SIGTERM in signal_calls
+                    assert signal.SIGINT in signal_calls
+                    # SIGHUP should NOT be registered on Windows
+                    if hasattr(signal, "SIGHUP"):
+                        assert signal.SIGHUP not in signal_calls
+                    # SIGBREAK might be registered if available
+                    if hasattr(signal, "SIGBREAK"):
+                        assert signal.SIGBREAK in signal_calls
+
+    def test_launch_scheduler_missing_sighup(self, monkeypatch):
+        """Test graceful handling when SIGHUP is not available."""
+        scheduler = Mock()
+        scheduler.start.side_effect = KeyboardInterrupt()
+        monkeypatch.setattr(crontask, "scheduler", scheduler)
+
+        # Mock signal.signal to raise AttributeError for SIGHUP
+        original_signal = signal.signal
+
+        def mock_signal(signum, handler):
+            # Simulate SIGHUP not being available
+            if hasattr(signal, "SIGHUP") and signum == signal.SIGHUP:
+                raise AttributeError("SIGHUP not available")
+            return original_signal(signum, handler)
+
+        with patch("signal.signal", side_effect=mock_signal):
+            with io.StringIO() as stdout:
+                # Should not raise an exception
+                call_command("crontask", stdout=stdout)
+                assert "Starting scheduler…" in stdout.getvalue()
