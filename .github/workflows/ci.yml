@@ -16,6 +16,7 @@ jobs:
         with:
           path: dist/*
   pytest-linux:
+    name: Pytest
     strategy:
       matrix:
         os:
@@ -49,6 +50,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
   pytest-windows-macos:
+    name: Pytest
     permissions:
       contents: read
     strategy:
