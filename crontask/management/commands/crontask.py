@@ -61,23 +61,19 @@ class Command(BaseCommand):
             self.stderr.write("Another scheduler is already running.")
 
     def launch_scheduler(self, lock, scheduler):
-        # Register signal handlers for graceful shutdown
-        # Use EAFP pattern and OS-specific signal handling
         match sys.platform:
             case "win32":
-                # Windows: SIGHUP not available, use SIGBREAK instead
                 try:
                     signal.signal(signal.SIGBREAK, kill_softly)
                 except (AttributeError, OSError):
-                    pass  # SIGBREAK might not be available in all Windows environments
+                    pass
                 signal.signal(signal.SIGTERM, kill_softly)
                 signal.signal(signal.SIGINT, kill_softly)
             case _:
-                # Unix-like systems: SIGHUP, SIGTERM, SIGINT all available
                 try:
                     signal.signal(signal.SIGHUP, kill_softly)
                 except (AttributeError, OSError):
-                    pass  # SIGHUP might not be available in some environments
+                    pass
                 signal.signal(signal.SIGTERM, kill_softly)
                 signal.signal(signal.SIGINT, kill_softly)
         self.stdout.write(self.style.SUCCESS("Starting scheduler…"))
