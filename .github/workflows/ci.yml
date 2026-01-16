@@ -18,6 +18,8 @@ jobs:
   pytest-linux:
     strategy:
       matrix:
+        os:
+          - "ubuntu-latest"
         python-version:
           - "3.12"
           - "3.13"
@@ -36,7 +38,7 @@ jobs:
         options: --entrypoint redis-server
     env:
       REDIS_URL: redis:///0
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
@@ -54,12 +56,16 @@ jobs:
         os:
           - "windows-latest"
           - "macos-latest"
+        python-version:
+          - "3.13"
+        django-version:
+          - "6.0"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
       - run: uv run --with django~=5.2.0 pytest
       - uses: codecov/codecov-action@v5
         with:
