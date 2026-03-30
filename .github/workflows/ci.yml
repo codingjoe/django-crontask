@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv run ${{ matrix.extras }} --with django~=${{ matrix.django-version }}.0 pytest
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
   pytest-windows-macos:
@@ -69,6 +69,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv run --with django~=${{ matrix.django-version }}.0 pytest
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
