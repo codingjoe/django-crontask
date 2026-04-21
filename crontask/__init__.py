@@ -20,6 +20,21 @@ VERSION = _version.version_tuple
 __all__ = ["cron", "interval", "scheduler"]
 
 
+def _monitor_config(schedule):
+    tz = str(timezone.get_default_timezone())
+    if isinstance(schedule, str):
+        return {"schedule": {"type": "crontab", "value": schedule}, "timezone": tz}
+    if isinstance(schedule, IntervalTrigger):
+        total = schedule.interval.total_seconds()
+        for unit, size in (("day", 86400), ("hour", 3600), ("minute", 60)):
+            if total >= size and total % size == 0:
+                return {
+                    "schedule": {"type": "interval", "value": int(total // size), "unit": unit},
+                    "timezone": tz,
+                }
+    return None
+
+
 class LazyBlockingScheduler(BlockingScheduler):
     """Avoid annoying info logs for pending jobs."""
 
@@ -45,13 +60,8 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         def cron_test():
             print("Cron test")
 
-
-    Please don't forget to set up a sentry monitor for the actor, otherwise you won't
-    get any notifications if the cron job fails.
-
-    The monitor slug is your actor name, the schedule should be set to the same
-    cron schedule as the cron decorator. The schedule type should be set to cron.
-    The monitors timezone should be set to Europe/Berlin.
+    If `sentry-sdk` is installed, a Sentry cron monitor is automatically
+    upserted on the first check-in using the task name as the monitor slug.
     """
 
     def decorator(task: Task) -> Task:
@@ -75,7 +85,11 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         except ImportError:
             fn = task.func
         else:
-            fn = monitor(task.name)(task.func)
+            monitor_kwargs = {}
+            config = _monitor_config(schedule)
+            if config is not None:
+                monitor_kwargs["monitor_config"] = config
+            fn = monitor(task.name, **monitor_kwargs)(task.func)
 
         task = type(task)(
             priority=task.priority,
