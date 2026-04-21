@@ -4,6 +4,7 @@ import zoneinfo
 import pytest
 from apscheduler.triggers.calendarinterval import CalendarIntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from crontask import _monitor_config, cron, interval, scheduler, tasks
 from django.utils import timezone
@@ -166,6 +167,18 @@ def test_monitor_config__interval_trigger(seconds, expected):
 
 
 @pytest.mark.parametrize(
+    "seconds",
+    [
+        42,  # less than 60 seconds
+        69,  # not a multiple of any supported unit
+    ],
+)
+def test_monitor_config__unsupported_interval_trigger(seconds):
+    trigger = IntervalTrigger(seconds=seconds, timezone=timezone.get_default_timezone())
+    assert _monitor_config(trigger) is None
+
+
+@pytest.mark.parametrize(
     "kwargs,expected",
     [
         ({"years": 1}, {"type": "interval", "value": 1, "unit": "year"}),
@@ -188,6 +201,7 @@ def test_monitor_config__calendar_interval_trigger(kwargs, expected):
         CalendarIntervalTrigger(
             months=1, days=1, timezone=timezone.get_default_timezone()
         ),
+        DateTrigger(run_date=datetime.datetime(2021, 1, 1)),
     ],
 )
 def test_monitor_config__unsupported(trigger):
