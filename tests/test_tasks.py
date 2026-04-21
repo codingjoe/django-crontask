@@ -123,9 +123,23 @@ def test_interval__seconds():
     ) == datetime.datetime(2021, 1, 1, 0, 0, 30, tzinfo=DEFAULT_TZINFO)
 
 
-def test_monitor_config__crontab_string():
-    assert _monitor_config("0 2 * * *") == {
+def test_monitor_config__cron_trigger():
+    assert _monitor_config(
+        CronTrigger.from_crontab("0 2 * * *", timezone=timezone.get_default_timezone())
+    ) == {
         "schedule": {"type": "crontab", "value": "0 2 * * *"},
+        "timezone": "Europe/Berlin",
+    }
+
+
+def test_monitor_config__cron_trigger__with_day_of_week():
+    # Literals are allowed, frist day of the week is Sunday:
+    # https://discord.com/channels/621778831602221064/1496192154702315560
+    trigger = CronTrigger.from_crontab(
+        "0 2 * * Mon-Fri", timezone=timezone.get_default_timezone()
+    )
+    assert _monitor_config(trigger) == {
+        "schedule": {"type": "crontab", "value": "0 2 * * mon-fri"},
         "timezone": "Europe/Berlin",
     }
 
@@ -138,10 +152,16 @@ def test_monitor_config__crontab_string():
         (3600, {"type": "interval", "value": 1, "unit": "hour"}),
         (86400, {"type": "interval", "value": 1, "unit": "day"}),
         (86400 * 3, {"type": "interval", "value": 3, "unit": "day"}),
+        (604800, {"type": "interval", "value": 1, "unit": "week"}),
+        (2592000, {"type": "interval", "value": 1, "unit": "month"}),
+        (31536000, {"type": "interval", "value": 1, "unit": "year"}),
+        (13 * 2592000, {"type": "interval", "value": 13, "unit": "month"}),
+        (12 * 604800, {"type": "interval", "value": 12, "unit": "week"}),
     ],
 )
 def test_monitor_config__interval_trigger(seconds, expected):
     trigger = IntervalTrigger(seconds=seconds, timezone=timezone.get_default_timezone())
+    assert _monitor_config(trigger) is not None
     assert _monitor_config(trigger)["schedule"] == expected
 
 
@@ -168,7 +188,6 @@ def test_monitor_config__calendar_interval_trigger(kwargs, expected):
         CalendarIntervalTrigger(
             months=1, days=1, timezone=timezone.get_default_timezone()
         ),
-        CronTrigger.from_crontab("* * * * *", timezone=timezone.get_default_timezone()),
     ],
 )
 def test_monitor_config__unsupported(trigger):

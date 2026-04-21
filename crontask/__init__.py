@@ -21,40 +21,46 @@ VERSION = _version.version_tuple
 __all__ = ["cron", "interval", "scheduler"]
 
 
-def _monitor_config(schedule: str | BaseTrigger) -> dict | None:
+def _monitor_config(trigger: str | BaseTrigger) -> dict[str, typing.Any] | None:
     tz = str(timezone.get_default_timezone())
-    match schedule:
-        case str():
-            return {"schedule": {"type": "crontab", "value": schedule}, "timezone": tz}
+    match trigger:
+        case CronTrigger():
+            fields = {f.name: str(f) for f in trigger.fields}
+            return {
+                "schedule": {
+                    "type": "crontab",
+                    "value": "{minute} {hour} {day} {month} {day_of_week}".format(
+                        **fields
+                    ),
+                },
+                "timezone": tz,
+            }
         case IntervalTrigger():
-            delta = schedule.interval
-            if delta.seconds == 0 and delta.days > 0:
-                return {
-                    "schedule": {
-                        "type": "interval",
-                        "value": delta.days,
-                        "unit": "day",
-                    },
-                    "timezone": tz,
-                }
-            if delta.days == 0:
-                for unit, size in (("hour", 3600), ("minute", 60)):
-                    if delta.seconds >= size and delta.seconds % size == 0:
-                        return {
-                            "schedule": {
-                                "type": "interval",
-                                "value": delta.seconds // size,
-                                "unit": unit,
-                            },
-                            "timezone": tz,
-                        }
-            return None
+            seconds = trigger.interval.total_seconds()
+            for unit, size in (
+                ("year", 31536000),
+                ("month", 2592000),
+                ("week", 604800),
+                ("day", 86400),
+                ("hour", 3600),
+                ("minute", 60),
+            ):
+                if seconds % size == 0:
+                    return {
+                        "schedule": {
+                            "type": "interval",
+                            "value": seconds // size,
+                            "unit": unit,
+                        },
+                        "timezone": tz,
+                    }
+            return None  # Less than a minute
         case CalendarIntervalTrigger():
             fields = {
-                "year": schedule.years,
-                "month": schedule.months,
-                "week": schedule.weeks,
-                "day": schedule.days,
+                "year": trigger.years,
+                "month": trigger.months,
+                "week": trigger.weeks,
+                "day": trigger.days,
             }
             set_fields = {k: v for k, v in fields.items() if v}
             if len(set_fields) == 1:
@@ -93,16 +99,15 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         def cron_test():
             print("Cron test")
 
-    Sentry cron monitor are automatically
-    upserted on the every check-in using the task name as the monitor slug.
+    Sentry cron monitors are automatically upserted on the every check-in
+    using the task name as the monitor slug.
     """
 
     def decorator(task: Task) -> Task:
-        trigger = schedule
         if isinstance(schedule, str):
             *_, day_schedule = schedule.split(" ")
-            # CronTrigger uses Python's timezone dependent first weekday,
-            # so in Berlin monday is 0 and sunday is 6. We use literals to avoid
+            # CronTrigger uses Python's timezone-dependent first weekday,
+            # so in Berlin Monday is 0, and Sunday is 6. We use literals to avoid
             # confusion. Literals are also more readable and crontab conform.
             if any(i.isdigit() for i in day_schedule):
                 raise ValueError(
@@ -112,13 +117,15 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
                 schedule,
                 timezone=timezone.get_default_timezone(),
             )
+        else:
+            trigger = schedule
 
         try:
             from sentry_sdk.crons import monitor
         except ImportError:
             fn = task.func
         else:
-            fn = monitor(task.name, monitor_config=_monitor_config(schedule))(task.func)
+            fn = monitor(task.name, monitor_config=_monitor_config(trigger))(task.func)
 
         task = type(task)(
             priority=task.priority,
