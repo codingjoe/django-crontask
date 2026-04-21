@@ -29,7 +29,11 @@ def _monitor_config(schedule):
         for unit, size in (("day", 86400), ("hour", 3600), ("minute", 60)):
             if total >= size and total % size == 0:
                 return {
-                    "schedule": {"type": "interval", "value": int(total // size), "unit": unit},
+                    "schedule": {
+                        "type": "interval",
+                        "value": int(total // size),
+                        "unit": unit,
+                    },
                     "timezone": tz,
                 }
     return None
