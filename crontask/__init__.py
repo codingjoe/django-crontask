@@ -7,6 +7,7 @@ from unittest.mock import Mock
 from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.base import BaseTrigger
+from apscheduler.triggers.calendarinterval import CalendarIntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from django.tasks import Task
@@ -20,23 +21,32 @@ VERSION = _version.version_tuple
 __all__ = ["cron", "interval", "scheduler"]
 
 
-def _monitor_config(schedule):
+def _monitor_config(schedule: str | BaseTrigger) -> dict | None:
     tz = str(timezone.get_default_timezone())
-    if isinstance(schedule, str):
-        return {"schedule": {"type": "crontab", "value": schedule}, "timezone": tz}
-    if isinstance(schedule, IntervalTrigger):
-        total = schedule.interval.total_seconds()
-        for unit, size in (("day", 86400), ("hour", 3600), ("minute", 60)):
-            if total >= size and total % size == 0:
-                return {
-                    "schedule": {
-                        "type": "interval",
-                        "value": int(total // size),
-                        "unit": unit,
-                    },
-                    "timezone": tz,
-                }
-    return None
+    match schedule:
+        case str():
+            return {"schedule": {"type": "crontab", "value": schedule}, "timezone": tz}
+        case IntervalTrigger():
+            delta = schedule.interval
+            if delta.seconds == 0 and delta.days > 0:
+                return {"schedule": {"type": "interval", "value": delta.days, "unit": "day"}, "timezone": tz}
+            if delta.days == 0:
+                for unit, size in (("hour", 3600), ("minute", 60)):
+                    if delta.seconds >= size and delta.seconds % size == 0:
+                        return {
+                            "schedule": {"type": "interval", "value": delta.seconds // size, "unit": unit},
+                            "timezone": tz,
+                        }
+            return None
+        case CalendarIntervalTrigger():
+            fields = {"year": schedule.years, "month": schedule.months, "week": schedule.weeks, "day": schedule.days}
+            set_fields = {k: v for k, v in fields.items() if v}
+            if len(set_fields) == 1:
+                (unit, value), = set_fields.items()
+                return {"schedule": {"type": "interval", "value": value, "unit": unit}, "timezone": tz}
+            return None
+        case _:
+            return None
 
 
 class LazyBlockingScheduler(BlockingScheduler):
@@ -64,8 +74,8 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         def cron_test():
             print("Cron test")
 
-    If `sentry-sdk` is installed, a Sentry cron monitor is automatically
-    upserted on the first check-in using the task name as the monitor slug.
+    Sentry cron monitor are automatically
+    upserted on the every check-in using the task name as the monitor slug.
     """
 
     def decorator(task: Task) -> Task:
@@ -89,11 +99,7 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         except ImportError:
             fn = task.func
         else:
-            monitor_kwargs = {}
-            config = _monitor_config(schedule)
-            if config is not None:
-                monitor_kwargs["monitor_config"] = config
-            fn = monitor(task.name, **monitor_kwargs)(task.func)
+            fn = monitor(task.name, monitor_config=_monitor_config(schedule))(task.func)
 
         task = type(task)(
             priority=task.priority,

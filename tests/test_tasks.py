@@ -1,11 +1,11 @@
 import datetime
-import sys
 import zoneinfo
-from unittest import mock
 
 import pytest
+from apscheduler.triggers.calendarinterval import CalendarIntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from crontask import cron, interval, scheduler, tasks
+from crontask import _monitor_config, cron, interval, scheduler, tasks
 from django.utils import timezone
 
 from tests.testapp.tasks import my_task
@@ -123,48 +123,49 @@ def test_interval__seconds():
     ) == datetime.datetime(2021, 1, 1, 0, 0, 30, tzinfo=DEFAULT_TZINFO)
 
 
-@pytest.fixture
-def fake_monitor(monkeypatch):
-    fake = mock.MagicMock()
-    fake.return_value = lambda fn: fn
-    module = mock.MagicMock()
-    module.monitor = fake
-    monkeypatch.setitem(sys.modules, "sentry_sdk.crons", module)
-    return fake
-
-
-def test_cron__sentry_monitor_config(fake_monitor):
-    assert not scheduler.remove_all_jobs()
-    cron("0 2 * * *")(tasks.heartbeat)
-    fake_monitor.assert_called_once()
-    args, kwargs = fake_monitor.call_args
-    assert args == (tasks.heartbeat.name,)
-    assert kwargs["monitor_config"]["schedule"] == {
-        "type": "crontab",
-        "value": "0 2 * * *",
-    }
-    assert kwargs["monitor_config"]["timezone"] == "Europe/Berlin"
-
-
-def test_cron__sentry_monitor_config_interval_trigger(fake_monitor):
-    assert not scheduler.remove_all_jobs()
-    trigger = IntervalTrigger(seconds=3600, timezone=timezone.get_default_timezone())
-    cron(trigger)(tasks.heartbeat)
-    _, kwargs = fake_monitor.call_args
-    assert kwargs["monitor_config"]["schedule"] == {
-        "type": "interval",
-        "value": 1,
-        "unit": "hour",
+def test_monitor_config__crontab_string():
+    assert _monitor_config("0 2 * * *") == {
+        "schedule": {"type": "crontab", "value": "0 2 * * *"},
+        "timezone": "Europe/Berlin",
     }
 
 
-def test_interval__sentry_monitor_config(fake_monitor):
-    assert not scheduler.remove_all_jobs()
-    with pytest.deprecated_call():
-        interval(seconds=300)(tasks.heartbeat)
-    _, kwargs = fake_monitor.call_args
-    assert kwargs["monitor_config"]["schedule"] == {
-        "type": "interval",
-        "value": 5,
-        "unit": "minute",
-    }
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
+        (60, {"type": "interval", "value": 1, "unit": "minute"}),
+        (300, {"type": "interval", "value": 5, "unit": "minute"}),
+        (3600, {"type": "interval", "value": 1, "unit": "hour"}),
+        (86400, {"type": "interval", "value": 1, "unit": "day"}),
+        (86400 * 3, {"type": "interval", "value": 3, "unit": "day"}),
+    ],
+)
+def test_monitor_config__interval_trigger(seconds, expected):
+    trigger = IntervalTrigger(seconds=seconds, timezone=timezone.get_default_timezone())
+    assert _monitor_config(trigger)["schedule"] == expected
+
+
+@pytest.mark.parametrize(
+    "kwargs,expected",
+    [
+        ({"years": 1}, {"type": "interval", "value": 1, "unit": "year"}),
+        ({"months": 2}, {"type": "interval", "value": 2, "unit": "month"}),
+        ({"weeks": 1}, {"type": "interval", "value": 1, "unit": "week"}),
+        ({"days": 7}, {"type": "interval", "value": 7, "unit": "day"}),
+    ],
+)
+def test_monitor_config__calendar_interval_trigger(kwargs, expected):
+    trigger = CalendarIntervalTrigger(**kwargs, timezone=timezone.get_default_timezone())
+    assert _monitor_config(trigger)["schedule"] == expected
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [
+        IntervalTrigger(seconds=30, timezone=timezone.get_default_timezone()),
+        CalendarIntervalTrigger(months=1, days=1, timezone=timezone.get_default_timezone()),
+        CronTrigger.from_crontab("* * * * *", timezone=timezone.get_default_timezone()),
+    ],
+)
+def test_monitor_config__unsupported(trigger):
+    assert _monitor_config(trigger) is None
