@@ -155,7 +155,9 @@ def test_monitor_config__interval_trigger(seconds, expected):
     ],
 )
 def test_monitor_config__calendar_interval_trigger(kwargs, expected):
-    trigger = CalendarIntervalTrigger(**kwargs, timezone=timezone.get_default_timezone())
+    trigger = CalendarIntervalTrigger(
+        **kwargs, timezone=timezone.get_default_timezone()
+    )
     assert _monitor_config(trigger)["schedule"] == expected
 
 
@@ -163,7 +165,9 @@ def test_monitor_config__calendar_interval_trigger(kwargs, expected):
     "trigger",
     [
         IntervalTrigger(seconds=30, timezone=timezone.get_default_timezone()),
-        CalendarIntervalTrigger(months=1, days=1, timezone=timezone.get_default_timezone()),
+        CalendarIntervalTrigger(
+            months=1, days=1, timezone=timezone.get_default_timezone()
+        ),
         CronTrigger.from_crontab("* * * * *", timezone=timezone.get_default_timezone()),
     ],
 )

@@ -29,21 +29,40 @@ def _monitor_config(schedule: str | BaseTrigger) -> dict | None:
         case IntervalTrigger():
             delta = schedule.interval
             if delta.seconds == 0 and delta.days > 0:
-                return {"schedule": {"type": "interval", "value": delta.days, "unit": "day"}, "timezone": tz}
+                return {
+                    "schedule": {
+                        "type": "interval",
+                        "value": delta.days,
+                        "unit": "day",
+                    },
+                    "timezone": tz,
+                }
             if delta.days == 0:
                 for unit, size in (("hour", 3600), ("minute", 60)):
                     if delta.seconds >= size and delta.seconds % size == 0:
                         return {
-                            "schedule": {"type": "interval", "value": delta.seconds // size, "unit": unit},
+                            "schedule": {
+                                "type": "interval",
+                                "value": delta.seconds // size,
+                                "unit": unit,
+                            },
                             "timezone": tz,
                         }
             return None
         case CalendarIntervalTrigger():
-            fields = {"year": schedule.years, "month": schedule.months, "week": schedule.weeks, "day": schedule.days}
+            fields = {
+                "year": schedule.years,
+                "month": schedule.months,
+                "week": schedule.weeks,
+                "day": schedule.days,
+            }
             set_fields = {k: v for k, v in fields.items() if v}
             if len(set_fields) == 1:
-                (unit, value), = set_fields.items()
-                return {"schedule": {"type": "interval", "value": value, "unit": unit}, "timezone": tz}
+                ((unit, value),) = set_fields.items()
+                return {
+                    "schedule": {"type": "interval", "value": value, "unit": unit},
+                    "timezone": tz,
+                }
             return None
         case _:
             return None
