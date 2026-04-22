@@ -7,7 +7,6 @@ from unittest.mock import Mock
 from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.base import BaseTrigger
-from apscheduler.triggers.calendarinterval import CalendarIntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from django.tasks import Task
@@ -16,62 +15,12 @@ from django.utils import timezone
 from . import _version
 
 __version__ = _version.version
+
+from .contrib import sentry
+
 VERSION = _version.version_tuple
 
 __all__ = ["cron", "interval", "scheduler"]
-
-
-def _monitor_config(trigger: str | BaseTrigger) -> dict[str, typing.Any] | None:
-    tz = str(timezone.get_default_timezone())
-    match trigger:
-        case CronTrigger():
-            fields = {f.name: str(f) for f in trigger.fields}
-            return {
-                "schedule": {
-                    "type": "crontab",
-                    "value": "{minute} {hour} {day} {month} {day_of_week}".format(
-                        **fields
-                    ),
-                },
-                "timezone": tz,
-            }
-        case IntervalTrigger():
-            seconds = trigger.interval.total_seconds()
-            for unit, size in (
-                ("year", 31536000),
-                ("month", 2592000),
-                ("week", 604800),
-                ("day", 86400),
-                ("hour", 3600),
-                ("minute", 60),
-            ):
-                if seconds % size == 0:
-                    return {
-                        "schedule": {
-                            "type": "interval",
-                            "value": seconds // size,
-                            "unit": unit,
-                        },
-                        "timezone": tz,
-                    }
-            return None  # Less than a minute
-        case CalendarIntervalTrigger():
-            fields = {
-                "year": trigger.years,
-                "month": trigger.months,
-                "week": trigger.weeks,
-                "day": trigger.days,
-            }
-            set_fields = {k: v for k, v in fields.items() if v}
-            if len(set_fields) == 1:
-                ((unit, value),) = set_fields.items()
-                return {
-                    "schedule": {"type": "interval", "value": value, "unit": unit},
-                    "timezone": tz,
-                }
-            return None
-        case _:
-            return None
 
 
 class LazyBlockingScheduler(BlockingScheduler):
@@ -120,21 +69,7 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         else:
             trigger = schedule
 
-        try:
-            from sentry_sdk.crons import monitor
-        except ImportError:
-            fn = task.func
-        else:
-            fn = monitor(task.name, monitor_config=_monitor_config(trigger))(task.func)
-
-        task = type(task)(
-            priority=task.priority,
-            func=fn,
-            queue_name=task.queue_name,
-            backend=task.backend,
-            takes_context=task.takes_context,
-            run_after=task.run_after,
-        )
+        task = sentry.monitor_cron_task(task, trigger)
 
         scheduler.add_job(
             func=task.enqueue,
