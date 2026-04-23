@@ -21,7 +21,7 @@ def test_monitor_config__cron_trigger():
 
 
 def test_monitor_config__cron_trigger__with_day_of_week():
-    # Literals are allowed, frist day of the week is Sunday:
+    # Literals are allowed, first day of the week is Sunday:
     # https://discord.com/channels/621778831602221064/1496192154702315560
     trigger = CronTrigger.from_crontab(
         "0 2 * * Mon-Fri", timezone=timezone.get_default_timezone()

@@ -48,7 +48,7 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         def cron_test():
             print("Cron test")
 
-    Sentry cron monitors are automatically upserted on the every check-in
+    Sentry cron monitors are automatically upserted on every check-in
     using the task name as the monitor slug.
     """
 
