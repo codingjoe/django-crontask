@@ -13,14 +13,12 @@ from django.tasks import Task
 from django.utils import timezone
 
 from . import _version
-
-__version__ = _version.version
-
 from .contrib import sentry
 
-VERSION = _version.version_tuple
+__all__ = ["cron", "interval", "scheduler", "VERSION", "__version__"]
 
-__all__ = ["cron", "interval", "scheduler"]
+__version__ = _version.version
+VERSION = _version.version_tuple
 
 
 class LazyBlockingScheduler(BlockingScheduler):

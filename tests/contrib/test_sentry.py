@@ -8,8 +8,6 @@ from apscheduler.triggers.interval import IntervalTrigger
 from crontask.contrib.sentry import trigger_to_monitor_config
 from django.utils import timezone
 
-pytest.importorskip("sentry_sdk")
-
 
 def test_monitor_config__cron_trigger():
     assert trigger_to_monitor_config(
