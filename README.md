@@ -104,8 +104,11 @@ def my_interval_task():
 
 ### Sentry Cron Monitors
 
-If you use [Sentry] you can add cron monitors to your tasks.
+If you use [Sentry] suitable tasks will be automatically monitored.
 The monitor's slug will be the actor's name. Like `my_task` in the example above.
+
+Certain triggers are not supported by Sentry as well as sub-minute intervals.
+In these cases, no monitor will be created and no telemetry will be sent.
 
 ### The crontask command
 

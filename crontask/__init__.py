@@ -13,11 +13,12 @@ from django.tasks import Task
 from django.utils import timezone
 
 from . import _version
+from .contrib import sentry
+
+__all__ = ["cron", "interval", "scheduler", "VERSION", "__version__"]
 
 __version__ = _version.version
 VERSION = _version.version_tuple
-
-__all__ = ["cron", "interval", "scheduler"]
 
 
 class LazyBlockingScheduler(BlockingScheduler):
@@ -45,21 +46,15 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         def cron_test():
             print("Cron test")
 
-
-    Please don't forget to set up a sentry monitor for the actor, otherwise you won't
-    get any notifications if the cron job fails.
-
-    The monitor slug is your actor name, the schedule should be set to the same
-    cron schedule as the cron decorator. The schedule type should be set to cron.
-    The monitors timezone should be set to Europe/Berlin.
+    Sentry cron monitors are automatically upserted on every check-in
+    using the task name as the monitor slug.
     """
 
     def decorator(task: Task) -> Task:
-        trigger = schedule
         if isinstance(schedule, str):
             *_, day_schedule = schedule.split(" ")
-            # CronTrigger uses Python's timezone dependent first weekday,
-            # so in Berlin monday is 0 and sunday is 6. We use literals to avoid
+            # CronTrigger uses Python's timezone-dependent first weekday,
+            # so in Berlin Monday is 0, and Sunday is 6. We use literals to avoid
             # confusion. Literals are also more readable and crontab conform.
             if any(i.isdigit() for i in day_schedule):
                 raise ValueError(
@@ -69,22 +64,10 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
                 schedule,
                 timezone=timezone.get_default_timezone(),
             )
-
-        try:
-            from sentry_sdk.crons import monitor
-        except ImportError:
-            fn = task.func
         else:
-            fn = monitor(task.name)(task.func)
+            trigger = schedule
 
-        task = type(task)(
-            priority=task.priority,
-            func=fn,
-            queue_name=task.queue_name,
-            backend=task.backend,
-            takes_context=task.takes_context,
-            run_after=task.run_after,
-        )
+        task = sentry.monitor_cron_task(task, trigger)
 
         scheduler.add_job(
             func=task.enqueue,
