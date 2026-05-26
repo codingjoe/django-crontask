@@ -62,7 +62,11 @@ def trigger_to_monitor_config(trigger: BaseTrigger) -> dict[str, typing.Any] | N
             return None
 
 
-def monitor_cron_task(task: Task, trigger: BaseTrigger) -> Task:
+def monitor_cron_task(
+    task: Task,
+    trigger: BaseTrigger,
+    sentry_monitor_config: dict[str, typing.Any] | bool | None = None,
+) -> Task:
     """
     Wrap the task function in a Sentry monitor for a suitable trigger.
 
@@ -70,19 +74,26 @@ def monitor_cron_task(task: Task, trigger: BaseTrigger) -> Task:
     the Sentry monitor configuration is upserted on each task execution.
     If the trigger is not supported, the task is returned unchanged.
     """
+    if sentry_monitor_config is False:
+        return task
+
     try:
         from sentry_sdk import monitor
     except ImportError:
         return task
     else:
-        if monitor_config := trigger_to_monitor_config(trigger):
-            return type(task)(
-                priority=task.priority,
-                func=monitor(task.name, monitor_config=monitor_config)(task.func),
-                queue_name=task.queue_name,
-                backend=task.backend,
-                takes_context=task.takes_context,
-                run_after=task.run_after,
-            )
+        monitor_config = sentry_monitor_config
+        if monitor_config is None:
+            monitor_config = trigger_to_monitor_config(trigger)
 
-    return task
+        if monitor_config is None:
+            return task
+
+        return type(task)(
+            priority=task.priority,
+            func=monitor(task.name, monitor_config=monitor_config)(task.func),
+            queue_name=task.queue_name,
+            backend=task.backend,
+            takes_context=task.takes_context,
+            run_after=task.run_after,
+        )

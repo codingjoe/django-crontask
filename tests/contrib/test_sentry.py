@@ -1,12 +1,21 @@
 import datetime
+import sys
+import types
+from unittest.mock import Mock
 
 import pytest
 from apscheduler.triggers.calendarinterval import CalendarIntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from crontask.contrib.sentry import trigger_to_monitor_config
+from crontask.contrib.sentry import monitor_cron_task, trigger_to_monitor_config
+from django.tasks import task
 from django.utils import timezone
+
+
+@task
+def sentry_monitor_test_task():
+    return None
 
 
 def test_monitor_config__cron_trigger():
@@ -91,3 +100,46 @@ def test_monitor_config__calendar_interval_trigger(kwargs, expected):
 )
 def test_monitor_config__unsupported(trigger):
     assert trigger_to_monitor_config(trigger) is None
+
+
+def test_monitor_cron_task__disabled(monkeypatch):
+    monitor = Mock(side_effect=lambda *_args, **_kwargs: lambda func: func)
+    monkeypatch.setitem(
+        sys.modules, "sentry_sdk", types.SimpleNamespace(monitor=monitor)
+    )
+
+    trigger = CronTrigger.from_crontab(
+        "0 2 * * *", timezone=timezone.get_default_timezone()
+    )
+    assert (
+        monitor_cron_task(
+            sentry_monitor_test_task,
+            trigger,
+            sentry_monitor_config=False,
+        )
+        is sentry_monitor_test_task
+    )
+    monitor.assert_not_called()
+
+
+def test_monitor_cron_task__custom_monitor_config(monkeypatch):
+    monitor = Mock(side_effect=lambda *_args, **_kwargs: lambda func: func)
+    monkeypatch.setitem(
+        sys.modules, "sentry_sdk", types.SimpleNamespace(monitor=monitor)
+    )
+
+    monitor_config = {
+        "schedule": {"type": "interval", "value": 1, "unit": "hour"},
+        "timezone": "Europe/Berlin",
+    }
+    trigger = DateTrigger(run_date=datetime.datetime(2021, 1, 1))
+    wrapped_task = monitor_cron_task(
+        sentry_monitor_test_task,
+        trigger,
+        sentry_monitor_config=monitor_config,
+    )
+    assert wrapped_task is not sentry_monitor_test_task
+    monitor.assert_called_once_with(
+        sentry_monitor_test_task.name,
+        monitor_config=monitor_config,
+    )

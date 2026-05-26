@@ -111,6 +111,19 @@ def test_cron__custom_trigger():
     ) == datetime.datetime(2021, 1, 1, 0, 0, 30, tzinfo=DEFAULT_TZINFO)
 
 
+def test_cron__sentry_monitor_config(monkeypatch):
+    assert not scheduler.remove_all_jobs()
+    called_with = {}
+
+    def monitor_cron_task(task, trigger, sentry_monitor_config=None):
+        called_with["sentry_monitor_config"] = sentry_monitor_config
+        return task
+
+    monkeypatch.setattr("crontask.sentry.monitor_cron_task", monitor_cron_task)
+    cron("* * * * *", sentry_monitor_config=False)(tasks.heartbeat)
+    assert called_with["sentry_monitor_config"] is False
+
+
 def test_interval__seconds():
     assert not scheduler.remove_all_jobs()
     with pytest.deprecated_call():

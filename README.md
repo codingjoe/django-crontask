@@ -110,6 +110,29 @@ The monitor's slug will be the actor's name. Like `my_task` in the example above
 Certain triggers are not supported by Sentry as well as sub-minute intervals.
 In these cases, no monitor will be created and no telemetry will be sent.
 
+Pass `sentry_monitor_config=False` to disable Sentry monitoring for a single task:
+
+```python
+@cron("* * * * *", sentry_monitor_config=False)
+@task
+def my_task_without_sentry(): ...
+```
+
+Pass `sentry_monitor_config` as a dictionary to provide custom monitor settings:
+
+```python
+@cron(
+    "* * * * *",
+    sentry_monitor_config={
+        "schedule": {"type": "crontab", "value": "* * * * *"},
+        "timezone": "UTC",
+        "checkin_margin": 2,
+    },
+)
+@task
+def my_task_with_custom_sentry(): ...
+```
+
 ### The crontask command
 
 ```ShellSession

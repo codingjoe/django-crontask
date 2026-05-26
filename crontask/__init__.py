@@ -36,7 +36,11 @@ class LazyBlockingScheduler(BlockingScheduler):
 scheduler = LazyBlockingScheduler()
 
 
-def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
+def cron(
+    schedule: str | BaseTrigger,
+    *,
+    sentry_monitor_config: dict[str, typing.Any] | bool | None = None,
+) -> typing.Callable[[Task], Task]:
     """
     Run task on a scheduler with a cron schedule.
 
@@ -48,6 +52,8 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
 
     Sentry cron monitors are automatically upserted on every check-in
     using the task name as the monitor slug.
+    Set sentry_monitor_config=False to disable monitoring for this task.
+    Set sentry_monitor_config to a dict to use a custom monitor config.
     """
 
     def decorator(task: Task) -> Task:
@@ -67,7 +73,11 @@ def cron(schedule: str | BaseTrigger) -> typing.Callable[[Task], Task]:
         else:
             trigger = schedule
 
-        task = sentry.monitor_cron_task(task, trigger)
+        task = sentry.monitor_cron_task(
+            task,
+            trigger,
+            sentry_monitor_config=sentry_monitor_config,
+        )
 
         scheduler.add_job(
             func=task.enqueue,
