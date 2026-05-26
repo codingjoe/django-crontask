@@ -20,9 +20,19 @@ def test_extend_lock__error():
         utils.extend_lock(lock, scheduler)
     assert lock.extend.call_count == 1
     assert scheduler.shutdown.call_count == 1
-    # ``extend_lock`` runs inside a scheduler worker thread; shutdown must be
-    # signalled asynchronously to avoid ``RuntimeError: cannot join current
-    # thread`` from BlockingScheduler's pool executor.
+
+
+def test_extend_lock__error_async_shutdown():
+    """
+    `extend_lock` runs inside a separate thread which can't join until the job returns.
+
+    See also: https://github.com/codingjoe/django-crontask/pull/53
+    """
+    lock = Mock()
+    lock.extend.side_effect = utils.LockError()
+    scheduler = Mock()
+    with pytest.raises(utils.LockError):
+        utils.extend_lock(lock, scheduler)
     scheduler.shutdown.assert_called_once_with(wait=False)
 
 
