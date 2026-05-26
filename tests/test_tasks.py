@@ -1,5 +1,6 @@
 import datetime
 import zoneinfo
+from unittest.mock import Mock
 
 import pytest
 from apscheduler.triggers.interval import IntervalTrigger
@@ -119,3 +120,50 @@ def test_interval__seconds():
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
     ) == datetime.datetime(2021, 1, 1, 0, 0, 30, tzinfo=DEFAULT_TZINFO)
+
+
+def test_cron__sentry_monitor_config_false(monkeypatch):
+    """Disable Sentry monitoring for a task."""
+    assert not scheduler.remove_all_jobs()
+    mock_monitor = Mock(return_value=tasks.heartbeat)
+    monkeypatch.setattr("crontask.sentry.monitor_cron_task", mock_monitor)
+
+    cron("* * * * *", sentry_monitor_config=False)(tasks.heartbeat)
+
+    mock_monitor.assert_not_called()
+    assert len(scheduler.get_jobs()) == 1
+
+
+def test_cron__sentry_monitor_config_custom_dict(monkeypatch):
+    """Use custom Sentry monitor config."""
+    assert not scheduler.remove_all_jobs()
+    original_task = tasks.heartbeat
+    wrapped_task = Mock(spec=type(tasks.heartbeat))
+    wrapped_task.enqueue = Mock()
+    wrapped_task.name = original_task.name
+    mock_monitor = Mock(return_value=wrapped_task)
+    monkeypatch.setattr("crontask.sentry.monitor_cron_task", mock_monitor)
+
+    custom_config = {"schedule": {"type": "crontab", "value": "0 0 * * *"}}
+    cron("* * * * *", sentry_monitor_config=custom_config)(original_task)
+
+    mock_monitor.assert_called_once()
+    call_args = mock_monitor.call_args
+    assert call_args.kwargs["sentry_monitor_config"] == custom_config
+
+
+def test_cron__sentry_monitor_config_none(monkeypatch):
+    """Use default Sentry monitor config (auto-detection)."""
+    assert not scheduler.remove_all_jobs()
+    original_task = tasks.heartbeat
+    wrapped_task = Mock(spec=type(tasks.heartbeat))
+    wrapped_task.enqueue = Mock()
+    wrapped_task.name = original_task.name
+    mock_monitor = Mock(return_value=wrapped_task)
+    monkeypatch.setattr("crontask.sentry.monitor_cron_task", mock_monitor)
+
+    cron("* * * * *")(original_task)
+
+    mock_monitor.assert_called_once()
+    call_args = mock_monitor.call_args
+    assert call_args.kwargs["sentry_monitor_config"] is None
