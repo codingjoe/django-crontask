@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import Mock, patch
 
 import pytest
 from apscheduler.triggers.calendarinterval import CalendarIntervalTrigger
@@ -91,3 +92,93 @@ def test_monitor_config__calendar_interval_trigger(kwargs, expected):
 )
 def test_monitor_config__unsupported(trigger):
     assert trigger_to_monitor_config(trigger) is None
+
+
+def test_monitor_cron_task__custom_config():
+    """Use custom Sentry monitor config when provided."""
+    pytest.importorskip("sentry_sdk")
+    from crontask.contrib.sentry import monitor_cron_task
+    from crontask.tasks import heartbeat
+
+    cron_trigger = CronTrigger.from_crontab(
+        "0 2 * * *", timezone=timezone.get_default_timezone()
+    )
+    custom_config = {"schedule": {"type": "crontab", "value": "0 2 * * *"}}
+
+    mock_monitor_decorator = Mock(return_value=lambda f: f)
+    with patch("sentry_sdk.monitor", mock_monitor_decorator):
+        result = monitor_cron_task(
+            heartbeat, cron_trigger, sentry_monitor_config=custom_config
+        )
+
+        mock_monitor_decorator.assert_called_once_with(
+            heartbeat.name, monitor_config=custom_config
+        )
+        assert result is not heartbeat
+
+
+def test_monitor_cron_task__auto_detect_config():
+    """Auto-detect Sentry monitor config when not provided."""
+    pytest.importorskip("sentry_sdk")
+    from crontask.contrib.sentry import monitor_cron_task
+    from crontask.tasks import heartbeat
+
+    cron_trigger = CronTrigger.from_crontab(
+        "0 2 * * *", timezone=timezone.get_default_timezone()
+    )
+
+    mock_monitor_decorator = Mock(return_value=lambda f: f)
+    with patch("sentry_sdk.monitor", mock_monitor_decorator):
+        result = monitor_cron_task(heartbeat, cron_trigger, sentry_monitor_config=None)
+
+        expected_config = {
+            "schedule": {"type": "crontab", "value": "0 2 * * *"},
+            "timezone": "Europe/Berlin",
+        }
+        mock_monitor_decorator.assert_called_once_with(
+            heartbeat.name, monitor_config=expected_config
+        )
+        assert result is not heartbeat
+
+
+def test_monitor_cron_task__unsupported_trigger_returns_task_unchanged():
+    """Return task unchanged when trigger is unsupported and no custom config provided."""
+    pytest.importorskip("sentry_sdk")
+    from crontask.contrib.sentry import monitor_cron_task
+    from crontask.tasks import heartbeat
+
+    unsupported_trigger = IntervalTrigger(
+        seconds=30, timezone=timezone.get_default_timezone()
+    )
+
+    mock_monitor_decorator = Mock()
+    with patch("sentry_sdk.monitor", mock_monitor_decorator):
+        result = monitor_cron_task(
+            heartbeat, unsupported_trigger, sentry_monitor_config=None
+        )
+
+        mock_monitor_decorator.assert_not_called()
+        assert result is heartbeat
+
+
+def test_monitor_cron_task__custom_config_overrides_auto_detect():
+    """Custom config takes precedence over auto-detection."""
+    pytest.importorskip("sentry_sdk")
+    from crontask.contrib.sentry import monitor_cron_task
+    from crontask.tasks import heartbeat
+
+    cron_trigger = CronTrigger.from_crontab(
+        "0 2 * * *", timezone=timezone.get_default_timezone()
+    )
+    custom_config = {"custom": "config"}
+
+    mock_monitor_decorator = Mock(return_value=lambda f: f)
+    with patch("sentry_sdk.monitor", mock_monitor_decorator):
+        result = monitor_cron_task(
+            heartbeat, cron_trigger, sentry_monitor_config=custom_config
+        )
+
+        mock_monitor_decorator.assert_called_once_with(
+            heartbeat.name, monitor_config=custom_config
+        )
+        assert result is not heartbeat

@@ -1,5 +1,3 @@
-import typing
-
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.calendarinterval import CalendarIntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
@@ -8,7 +6,9 @@ from django.tasks import Task
 from django.utils import timezone
 
 
-def trigger_to_monitor_config(trigger: BaseTrigger) -> dict[str, typing.Any] | None:
+def trigger_to_monitor_config(
+    trigger: BaseTrigger,
+) -> dict[str, dict[str, str | int] | str] | None:
     """Convert an APScheduler trigger to a Sentry monitor configuration if possible."""
     tz = str(timezone.get_default_timezone())
     match trigger:
@@ -62,7 +62,11 @@ def trigger_to_monitor_config(trigger: BaseTrigger) -> dict[str, typing.Any] | N
             return None
 
 
-def monitor_cron_task(task: Task, trigger: BaseTrigger) -> Task:
+def monitor_cron_task(
+    task: Task,
+    trigger: BaseTrigger,
+    sentry_monitor_config: dict[str, dict[str, str | int] | str] | None = None,
+) -> Task:
     """
     Wrap the task function in a Sentry monitor for a suitable trigger.
 
@@ -75,7 +79,9 @@ def monitor_cron_task(task: Task, trigger: BaseTrigger) -> Task:
     except ImportError:
         return task
     else:
-        if monitor_config := trigger_to_monitor_config(trigger):
+        if monitor_config := sentry_monitor_config or trigger_to_monitor_config(
+            trigger
+        ):
             return type(task)(
                 priority=task.priority,
                 func=monitor(task.name, monitor_config=monitor_config)(task.func),
