@@ -22,6 +22,20 @@ def test_extend_lock__error():
     assert scheduler.shutdown.call_count == 1
 
 
+def test_extend_lock__error_async_shutdown():
+    """
+    `extend_lock` runs inside a separate thread which can't join until the job returns.
+
+    See also: https://github.com/codingjoe/django-crontask/pull/53
+    """
+    lock = Mock()
+    lock.extend.side_effect = utils.LockError()
+    scheduler = Mock()
+    with pytest.raises(utils.LockError):
+        utils.extend_lock(lock, scheduler)
+    scheduler.shutdown.assert_called_once_with(wait=False)
+
+
 class TestFakeLock:
     def test_enter(self):
         fake_lock = utils.FakeLock()
