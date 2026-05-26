@@ -37,9 +37,18 @@ else:
 
 
 def extend_lock(lock, scheduler):
-    """Extend the lock for a scheduler or shut it down."""
+    """Extend the lock for a scheduler or shut it down.
+
+    ``extend_lock`` is itself an APScheduler job and therefore runs inside one
+    of the scheduler's executor threads. ``scheduler.shutdown()`` defaults to
+    ``wait=True``, which makes the threadpool join every worker thread —
+    including the one this function is running in — raising
+    ``RuntimeError: cannot join current thread``. We pass ``wait=False`` so
+    shutdown is signalled asynchronously and the current thread is allowed to
+    finish unwinding.
+    """
     try:
         lock.extend(get_settings().LOCK_TIMEOUT, True)
     except LockError:
-        scheduler.shutdown()
+        scheduler.shutdown(wait=False)
         raise

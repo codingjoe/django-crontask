@@ -20,6 +20,10 @@ def test_extend_lock__error():
         utils.extend_lock(lock, scheduler)
     assert lock.extend.call_count == 1
     assert scheduler.shutdown.call_count == 1
+    # ``extend_lock`` runs inside a scheduler worker thread; shutdown must be
+    # signalled asynchronously to avoid ``RuntimeError: cannot join current
+    # thread`` from BlockingScheduler's pool executor.
+    scheduler.shutdown.assert_called_once_with(wait=False)
 
 
 class TestFakeLock:
