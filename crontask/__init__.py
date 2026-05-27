@@ -1,21 +1,19 @@
 """Cron style scheduler for Django's task framework."""
 
 import typing
-import warnings
 from unittest.mock import Mock
 
 from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.interval import IntervalTrigger
 from django.tasks import Task
 from django.utils import timezone
 
 from . import _version
 from .contrib import sentry
 
-__all__ = ["cron", "interval", "scheduler", "VERSION", "__version__"]
+__all__ = ["cron", "scheduler", "VERSION", "__version__"]
 
 __version__ = _version.version
 VERSION = _version.version_tuple
@@ -90,25 +88,3 @@ def cron(
         return task
 
     return decorator
-
-
-def interval(*, seconds):
-    """
-    Run task on a periodic interval.
-
-    The interval decorator is deprecated and will be removed in a future release.
-    Please use the cron decorator with an 'IntervalTrigger' instead.
-    """
-    warnings.warn(
-        "The interval decorator is deprecated and will be removed in a future release. "
-        "Please use the cron decorator with an 'IntervalTrigger' instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    return cron(
-        IntervalTrigger(
-            seconds=seconds,
-            timezone=timezone.get_default_timezone(),
-        )
-    )
