@@ -65,7 +65,7 @@ def trigger_to_monitor_config(
 def monitor_cron_task(
     task: Task,
     trigger: BaseTrigger,
-    sentry_monitor_config: dict[str, dict[str, str | int] | str] | None = None,
+    sentry_monitor_config: dict[str, dict[str, str | int] | str],
 ) -> Task:
     """
     Wrap the task function in a Sentry monitor for a suitable trigger.

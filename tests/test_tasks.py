@@ -118,7 +118,7 @@ def test_cron__sentry_monitor_config_false(monkeypatch):
     mock_monitor = Mock(return_value=tasks.heartbeat)
     monkeypatch.setattr("crontask.sentry.monitor_cron_task", mock_monitor)
 
-    cron("* * * * *", sentry_monitor_config=False)(tasks.heartbeat)
+    cron("* * * * *", sentry_monitor_config=None)(tasks.heartbeat)
 
     mock_monitor.assert_not_called()
     assert len(scheduler.get_jobs()) == 1
@@ -156,4 +156,4 @@ def test_cron__sentry_monitor_config_none(monkeypatch):
 
     mock_monitor.assert_called_once()
     call_args = mock_monitor.call_args
-    assert call_args.kwargs["sentry_monitor_config"] is None
+    assert call_args.kwargs["sentry_monitor_config"] == {}
