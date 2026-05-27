@@ -40,7 +40,7 @@ UNSET = object()
 def cron(
     schedule: str | BaseTrigger,
     *,
-    sentry_monitor_config: dict[str, dict[str, str | int] | str] = UNSET,
+    sentry_monitor_config: dict[str, dict[str, str | int] | str] | None = UNSET,
 ) -> typing.Callable[[Task], Task]:
     """
     Run task on a scheduler with a cron schedule.
@@ -74,7 +74,7 @@ def cron(
         else:
             trigger = schedule
 
-        if sentry_monitor_config:
+        if sentry_monitor_config is not None:
             task = sentry.monitor_cron_task(
                 task,
                 trigger,
