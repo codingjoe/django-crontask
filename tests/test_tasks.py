@@ -166,4 +166,4 @@ def test_cron__sentry_monitor_config_none(monkeypatch):
 
     mock_monitor.assert_called_once()
     call_args = mock_monitor.call_args
-    assert call_args.kwargs["sentry_monitor_config"] is None
+    assert not call_args.kwargs["sentry_monitor_config"]

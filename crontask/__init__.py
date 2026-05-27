@@ -34,12 +34,13 @@ class LazyBlockingScheduler(BlockingScheduler):
 
 
 scheduler = LazyBlockingScheduler()
+UNSET = object()
 
 
 def cron(
     schedule: str | BaseTrigger,
     *,
-    sentry_monitor_config: dict[str, typing.Any] | bool | None = None,
+    sentry_monitor_config: dict[str, dict[str, str | int] | str] = UNSET,
 ) -> typing.Callable[[Task], Task]:
     """
     Run task on a scheduler with a cron schedule.
@@ -52,7 +53,7 @@ def cron(
 
     Args:
         schedule: A cron schedule string or an APScheduler trigger.
-        sentry_monitor_config: A Sentry monitor configuration dict or False to disable monitoring.
+        sentry_monitor_config: A Sentry monitor configuration dict or None to disable monitoring.
 
     """
 
@@ -73,11 +74,13 @@ def cron(
         else:
             trigger = schedule
 
-        if sentry_monitor_config is not False:
+        if sentry_monitor_config:
             task = sentry.monitor_cron_task(
                 task,
                 trigger,
-                sentry_monitor_config=sentry_monitor_config,
+                sentry_monitor_config={}
+                if sentry_monitor_config is UNSET
+                else sentry_monitor_config,
             )
 
         scheduler.add_job(
