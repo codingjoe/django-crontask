@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 from apscheduler.triggers.interval import IntervalTrigger
-from crontask import cron, interval, scheduler, tasks
+from crontask import cron, scheduler, tasks
 from django.utils import timezone
 
 from tests.testapp.tasks import my_task
@@ -106,16 +106,6 @@ def test_cron__custom_trigger():
         seconds=30, timezone=timezone.get_default_timezone()
     )
     assert cron(every_30_secs)(tasks.heartbeat)
-    init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)
-    assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
-        init, init
-    ) == datetime.datetime(2021, 1, 1, 0, 0, 30, tzinfo=DEFAULT_TZINFO)
-
-
-def test_interval__seconds():
-    assert not scheduler.remove_all_jobs()
-    with pytest.deprecated_call():
-        assert interval(seconds=30)(tasks.heartbeat)
     init = datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=DEFAULT_TZINFO)
     assert scheduler.get_jobs()[0].trigger.get_next_fire_time(
         init, init
