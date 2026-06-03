@@ -18,6 +18,10 @@
 [![Test Coverage](https://codecov.io/gh/codingjoe/django-crontask/branch/main/graph/badge.svg)](https://codecov.io/gh/codingjoe/django-crontask)
 [![GitHub License](https://img.shields.io/github/license/codingjoe/django-crontask)](https://raw.githubusercontent.com/codingjoe/django-crontask/master/LICENSE)
 
+## Sponsors
+
+[![Sponsors](https://django.the-box.sh/sponsors/codingjoe/django-crontask.svg)](https://github.com/sponsors/codingjoe)
+
 ## Setup
 
 You need to have [Django's Task framework][django-tasks] setup properly.
