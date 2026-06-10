@@ -20,7 +20,7 @@
 
 ## Sponsors
 
-[![Sponsors](https://django.the-box.sh/sponsors/codingjoe/django-crontask.svg)](https://github.com/sponsors/codingjoe)
+[![Sponsors](https://sponsor.pics/codingjoe/django-crontask.svg)](https://github.com/sponsors/codingjoe)
 
 ## Setup
 
