@@ -1,3 +1,6 @@
+> [!Note]
+> Still looking for a reliable task backend? Check out [Threadmill][threadmill]
+
 # Django CronTask
 
 <p align="center">
@@ -142,3 +145,4 @@ options:
 [apscheduler]: https://apscheduler.readthedocs.io/en/stable/
 [django-tasks]: https://docs.djangoproject.com/en/6.0/topics/tasks/
 [sentry]: https://docs.sentry.io/product/crons/
+[threadmill]: https://github.com/codingjoe/threadmill
