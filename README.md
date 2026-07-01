@@ -1,5 +1,5 @@
-> [!Note]
-> Still looking for a reliable task backend? Check out [Threadmill][threadmill]
+> [!NOTE]
+> Still looking for a reliable task backend? Check out [Threadmill]
 
 # Django CronTask
 
