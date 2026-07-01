@@ -1,6 +1,3 @@
-> [!NOTE]
-> Still looking for a reliable task backend? Check out [Threadmill]
-
 # Django CronTask
 
 <p align="center">
@@ -26,6 +23,9 @@
 [![Sponsors](https://sponsor.pics/codingjoe/django-crontask.svg)](https://github.com/sponsors/codingjoe)
 
 ## Setup
+
+> [!NOTE]
+> Still need a reliable task backend? Check out [Threadmill]!
 
 You need to have [Django's Task framework][django-tasks] setup properly.
 
