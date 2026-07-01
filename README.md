@@ -24,6 +24,9 @@
 
 ## Setup
 
+> [!NOTE]
+> Still need a reliable task backend? Check out [Threadmill]!
+
 You need to have [Django's Task framework][django-tasks] setup properly.
 
 ```ShellSession
@@ -142,3 +145,4 @@ options:
 [apscheduler]: https://apscheduler.readthedocs.io/en/stable/
 [django-tasks]: https://docs.djangoproject.com/en/6.0/topics/tasks/
 [sentry]: https://docs.sentry.io/product/crons/
+[threadmill]: https://github.com/codingjoe/threadmill
