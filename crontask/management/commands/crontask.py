@@ -5,6 +5,7 @@ import sys
 from apscheduler.triggers.interval import IntervalTrigger
 from django.apps import apps
 from django.core.management import BaseCommand
+from django.utils.module_loading import module_has_submodule
 
 from ... import conf, utils
 
@@ -102,4 +103,5 @@ class Command(BaseCommand):
                         f"Loaded tasks from {self.style.NOTICE(app.name)}."
                     )
                 except ImportError:
-                    pass
+                    if module_has_submodule(app.module, "tasks"):
+                        raise
