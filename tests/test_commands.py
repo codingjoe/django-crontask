@@ -7,6 +7,7 @@ import pytest
 from crontask import utils
 from crontask.management.commands import crontask
 from django.core.management import call_command
+from django.test.utils import isolate_apps
 
 
 def test_kill_softly():
@@ -40,6 +41,55 @@ class Testcrontask:
             call_command("crontask", "--no-heartbeat", stdout=stdout)
             assert "Loaded tasks from tests.testapp." in stdout.getvalue()
             assert "Scheduling heartbeat." not in stdout.getvalue()
+
+    @pytest.mark.parametrize("tasks_path", ["tasks.py", "tasks/__init__.py"])
+    @pytest.mark.parametrize(
+        ("app_name", "tasks_source", "error", "message"),
+        [
+            (
+                "app_with_dependency_error",
+                "import crontask_unavailable_dependency",
+                ModuleNotFoundError,
+                "crontask_unavailable_dependency",
+            ),
+            (
+                "app_with_import_error",
+                "from . import undefined_task",
+                ImportError,
+                "undefined_task",
+            ),
+        ],
+    )
+    def test_load_tasks__import_error(
+        self,
+        patch_launch,
+        tmp_path,
+        monkeypatch,
+        tasks_path,
+        app_name,
+        tasks_source,
+        error,
+        message,
+    ):
+        app_name += "_package" if "/" in tasks_path else "_module"
+        app_path = tmp_path / app_name
+        app_path.mkdir()
+        (app_path / "__init__.py").touch()
+        (app_path / tasks_path).parent.mkdir(exist_ok=True)
+        (app_path / tasks_path).write_text(tasks_source)
+        monkeypatch.syspath_prepend(tmp_path)
+
+        with isolate_apps(app_name) as apps:
+            monkeypatch.setattr(crontask, "apps", apps)
+            with pytest.raises(error, match=message):
+                call_command("crontask", "--no-heartbeat")
+
+    def test_load_tasks__optional_tasks(self, patch_launch, monkeypatch):
+        with isolate_apps("django.contrib.sessions") as apps:
+            monkeypatch.setattr(crontask, "apps", apps)
+            with io.StringIO() as stdout:
+                call_command("crontask", "--no-heartbeat", stdout=stdout)
+                assert "Loaded tasks" not in stdout.getvalue()
 
     def test_locked(self):
         """A lock was already acquired by another process."""
