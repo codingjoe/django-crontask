@@ -105,4 +105,5 @@ test = [
   "pytest",
   "pytest-cov",
   "pytest-django",
+  "fakeredis[lua]",
 ]
