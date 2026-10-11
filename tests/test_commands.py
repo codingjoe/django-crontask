@@ -94,10 +94,12 @@ class Testcrontask:
     def test_locked(self):
         """A lock was already acquired by another process."""
         pytest.importorskip("redis", reason="redis is not installed")
-        with utils.redis_client.lock("crontask-lock", blocking_timeout=0):
-            with io.StringIO() as stderr:
-                call_command("crontask", stderr=stderr)
-                assert "Another scheduler is already running." in stderr.getvalue()
+        with (
+            utils.redis_client.lock("crontask-lock", blocking_timeout=0),
+            io.StringIO() as stderr,
+        ):
+            call_command("crontask", stderr=stderr)
+            assert "Another scheduler is already running." in stderr.getvalue()
 
     def test_locked_no_refresh(self, monkeypatch):
         """A lock was acquired, but it was not refreshed."""
@@ -143,8 +145,10 @@ class Testcrontask:
             signal_calls.append(signum)
             return original_signal(signum, handler)
 
-        with patch("signal.signal", side_effect=mock_signal):
-            with io.StringIO() as stdout:
+        with (
+            patch("signal.signal", side_effect=mock_signal),
+            io.StringIO() as stdout,
+        ):
                 call_command("crontask", stdout=stdout)
                 assert signal.SIGHUP in signal_calls
                 assert signal.SIGTERM in signal_calls
@@ -164,8 +168,10 @@ class Testcrontask:
             signal_calls.append(signum)
             return original_signal(signum, handler)
 
-        with patch("signal.signal", side_effect=mock_signal):
-            with io.StringIO() as stdout:
+        with (
+            patch("signal.signal", side_effect=mock_signal),
+            io.StringIO() as stdout,
+        ):
                 call_command("crontask", stdout=stdout)
                 assert signal.SIGTERM in signal_calls
                 assert signal.SIGINT in signal_calls

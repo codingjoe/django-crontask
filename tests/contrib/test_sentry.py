@@ -32,7 +32,7 @@ def test_monitor_config__cron_trigger__with_day_of_week():
 
 
 @pytest.mark.parametrize(
-    "seconds,expected",
+    ("seconds", "expected"),
     [
         (60, {"type": "interval", "value": 1, "unit": "minute"}),
         (300, {"type": "interval", "value": 5, "unit": "minute"}),
@@ -65,7 +65,7 @@ def test_monitor_config__unsupported_interval_trigger(seconds):
 
 
 @pytest.mark.parametrize(
-    "kwargs,expected",
+    ("kwargs", "expected"),
     [
         ({"years": 1}, {"type": "interval", "value": 1, "unit": "year"}),
         ({"months": 2}, {"type": "interval", "value": 2, "unit": "month"}),
@@ -87,7 +87,7 @@ def test_monitor_config__calendar_interval_trigger(kwargs, expected):
         CalendarIntervalTrigger(
             months=1, days=1, timezone=timezone.get_default_timezone()
         ),
-        DateTrigger(run_date=datetime.datetime(2021, 1, 1)),
+        DateTrigger(run_date=datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC)),
     ],
 )
 def test_monitor_config__unsupported(trigger):

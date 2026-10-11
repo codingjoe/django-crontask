@@ -20,7 +20,8 @@ from ... import scheduler
 def kill_softly(signum, frame):
     """Raise a KeyboardInterrupt to stop the scheduler and release the lock."""
     signame = signal.Signals(signum).name
-    raise KeyboardInterrupt(f"Received {signame} ({signum}), shutting down…")
+    msg = f"Received {signame} ({signum}), shutting down…"
+    raise KeyboardInterrupt(msg)
 
 
 class Command(BaseCommand):
