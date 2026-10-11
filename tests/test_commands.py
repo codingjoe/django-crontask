@@ -17,7 +17,7 @@ def test_kill_softly():
 
 
 class Testcrontask:
-    @pytest.fixture()
+    @pytest.fixture
     def patch_launch(self, monkeypatch):
         monkeypatch.setattr(
             "crontask.management.commands.crontask.Command.launch_scheduler",
