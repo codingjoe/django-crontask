@@ -7,12 +7,6 @@ name = "django-crontask"
 readme = "README.md"
 keywords = [ "cron", "Django", "scheduler", "tasks" ]
 license = { file = "LICENSE" }
-authors = [
-  { name = "Rust Saiargaliev", email = "fly.amureki@gmail.com" },
-  { name = "Johannes Maron", email = "johannes@maron.family" },
-  { name = "Mostafa Mohamed", email = "mostafa.anm91@gmail.com" },
-  { name = "Jacqueline Kraus", email = "jacquelinekraus1992@gmail.com" },
-]
 requires-python = ">=3.14"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -35,16 +29,33 @@ classifiers = [
 ]
 dynamic = [ "description", "version" ]
 dependencies = [ "apscheduler", "django>=6" ]
-optional-dependencies.redis = [ "redis" ]
-optional-dependencies.sentry = [ "sentry-sdk" ]
-urls.Changelog = "https://github.com/codingjoe/django-crontask/releases"
-urls.Documentation = "https://django-crontask.rtfd.io/"
-urls.Funding = "https://github.com/sponsors/codingjoe"
+[[project.authors]]
+name = "Rust Saiargaliev"
+email = "fly.amureki@gmail.com"
+
+[[project.authors]]
+name = "Johannes Maron"
+email = "johannes@maron.family"
+
+[[project.authors]]
+name = "Mostafa Mohamed"
+email = "mostafa.anm91@gmail.com"
+
+[[project.authors]]
+name = "Jacqueline Kraus"
+email = "jacquelinekraus1992@gmail.com"
+[project.optional-dependencies]
+redis = [ "redis" ]
+sentry = [ "sentry-sdk" ]
+[project.urls]
+Changelog = "https://github.com/codingjoe/django-crontask/releases"
+Documentation = "https://django-crontask.rtfd.io/"
+Funding = "https://github.com/sponsors/codingjoe"
 # https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
-urls.Homepage = "https://github.com/codingjoe/django-crontask"
-urls.Issues = "https://github.com/codingjoe/django-crontask/issues"
-urls.Releasenotes = "https://github.com/codingjoe/django-crontask/releases/latest"
-urls.Source = "https://github.com/codingjoe/django-crontask"
+Homepage = "https://github.com/codingjoe/django-crontask"
+Issues = "https://github.com/codingjoe/django-crontask/issues"
+Releasenotes = "https://github.com/codingjoe/django-crontask/releases/latest"
+Source = "https://github.com/codingjoe/django-crontask"
 
 [dependency-groups]
 dev = [
@@ -61,11 +72,13 @@ test = [
 write_to = "crontask/_version.py"
 
 [tool.flit]
-module.name = "crontask"
+[tool.flit.module]
+name = "crontask"
 
 [tool.ruff]
 src = [ "crontask", "tests" ]
-lint.select = [
+[tool.ruff.lint]
+select = [
   "B",  # flake8-bugbear
   "C",  # flake8-comprehensions
   "D",  # pydocstyle
@@ -76,20 +89,23 @@ lint.select = [
   "UP", # pyupgrade
   "W",  # pycodestyle warnings
 ]
-lint.ignore = [ "B904", "D1", "E501", "S101" ]
-lint.isort.combine-as-imports = true
-lint.isort.force-wrap-aliases = true
-lint.isort.section-order = [ "future", "standard-library", "third-party", "first-party", "local-folder" ]
-lint.isort.split-on-trailing-comma = true
-lint.pydocstyle.convention = "pep257"
+ignore = [ "B904", "D1", "E501", "S101" ]
+isort.combine-as-imports = true
+isort.force-wrap-aliases = true
+isort.section-order = [ "future", "standard-library", "third-party", "first-party", "local-folder" ]
+isort.split-on-trailing-comma = true
+pydocstyle.convention = "pep257"
 
 [tool.pytest]
-ini_options.minversion = "6.0"
-ini_options.testpaths = [ "tests" ]
-ini_options.addopts = "--cov --cov-report=xml --cov-report=term --tb=short -rxs"
-ini_options.DJANGO_SETTINGS_MODULE = "tests.testapp.settings"
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [ "tests" ]
+addopts = "--cov --cov-report=xml --cov-report=term --tb=short -rxs"
+DJANGO_SETTINGS_MODULE = "tests.testapp.settings"
 
 [tool.coverage]
-run.source = [ "crontask" ]
-report.skip_covered = true
-report.show_missing = true
+[tool.coverage.run]
+source = [ "crontask" ]
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
