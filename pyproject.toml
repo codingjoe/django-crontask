@@ -78,18 +78,27 @@ name = "crontask"
 [tool.ruff]
 src = [ "crontask", "tests" ]
 [tool.ruff.lint]
-select = [
-  "B",  # flake8-bugbear
-  "C",  # flake8-comprehensions
-  "D",  # pydocstyle
-  "E",  # pycodestyle errors
-  "F",  # pyflakes
-  "I",  # isort
-  "S",  # flake8-bandit
-  "UP", # pyupgrade
-  "W",  # pycodestyle warnings
+extend-select = [
+  "C90",
+  "D",
+  "D213",
+  "DJ",
+  "E",
+  "G",
+  "N",
+  "PERF",
+  "PT",
+  "PTH",
+  "RET",
+  "S",
+  "SIM",
+  "SLOT",
+  "T20",
+  "TRY",
+  "UP",
+  "W",
 ]
-ignore = [ "B904", "D1", "E501", "S101" ]
+ignore = [ "D1", "D203", "D212", "E501", "RUF01" ]
 isort.combine-as-imports = true
 isort.force-wrap-aliases = true
 isort.section-order = [ "future", "standard-library", "third-party", "first-party", "local-folder" ]
