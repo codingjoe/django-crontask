@@ -149,10 +149,10 @@ class Testcrontask:
             patch("signal.signal", side_effect=mock_signal),
             io.StringIO() as stdout,
         ):
-                call_command("crontask", stdout=stdout)
-                assert signal.SIGHUP in signal_calls
-                assert signal.SIGTERM in signal_calls
-                assert signal.SIGINT in signal_calls
+            call_command("crontask", stdout=stdout)
+            assert signal.SIGHUP in signal_calls
+            assert signal.SIGTERM in signal_calls
+            assert signal.SIGINT in signal_calls
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific test")
     def test_launch_scheduler_windows_signals(self, monkeypatch):
@@ -172,11 +172,11 @@ class Testcrontask:
             patch("signal.signal", side_effect=mock_signal),
             io.StringIO() as stdout,
         ):
-                call_command("crontask", stdout=stdout)
-                assert signal.SIGTERM in signal_calls
-                assert signal.SIGINT in signal_calls
-                if hasattr(signal, "SIGBREAK"):
-                    assert signal.SIGBREAK in signal_calls
-                assert not any(
-                    sig == getattr(signal, "SIGHUP", None) for sig in signal_calls
-                )
+            call_command("crontask", stdout=stdout)
+            assert signal.SIGTERM in signal_calls
+            assert signal.SIGINT in signal_calls
+            if hasattr(signal, "SIGBREAK"):
+                assert signal.SIGBREAK in signal_calls
+            assert not any(
+                sig == getattr(signal, "SIGHUP", None) for sig in signal_calls
+            )
