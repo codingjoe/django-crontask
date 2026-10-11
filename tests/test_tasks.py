@@ -92,7 +92,7 @@ def test_cron__trigger_attribute():
 )
 def test_cron__error(schedule):
     assert not scheduler.remove_all_jobs()
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="Please use a literal day of week") as e:
         cron(schedule)(tasks.heartbeat)
     assert (
         "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"

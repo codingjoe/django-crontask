@@ -62,9 +62,11 @@ def cron(
             # so in Berlin Monday is 0, and Sunday is 6. We use literals to avoid
             # confusion. Literals are also more readable and crontab conform.
             if any(i.isdigit() for i in day_schedule):
-                raise ValueError(
-                    "Please use a literal day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
+                msg = (
+                    "Please use a literal day of week "
+                    "(Mon, Tue, Wed, Thu, Fri, Sat, Sun) or *"
                 )
+                raise ValueError(msg)
             trigger = CronTrigger.from_crontab(
                 schedule,
                 timezone=timezone.get_default_timezone(),
