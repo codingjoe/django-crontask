@@ -13,7 +13,7 @@ from django.utils import timezone
 from . import _version
 from .contrib import sentry
 
-__all__ = ["cron", "scheduler", "VERSION", "__version__"]
+__all__ = ["VERSION", "__version__", "cron", "scheduler"]
 
 __version__ = _version.version
 VERSION = _version.version_tuple

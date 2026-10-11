@@ -16,7 +16,7 @@ class FakeLock:
 
 if redis_url := get_settings().REDIS_URL:
     import redis
-    from redis.exceptions import LockError, LockNotOwnedError  # noqa
+    from redis.exceptions import LockError, LockNotOwnedError
 
     redis_client = redis.Redis.from_url(redis_url)
     lock = redis_client.lock(
