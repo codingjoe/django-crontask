@@ -1,0 +1,4 @@
+*.lock binary
+*-lock.* binary
+**/migrations/*.py linguist-generated
+*.html linguist-language=django
