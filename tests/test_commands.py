@@ -80,13 +80,13 @@ class Testcrontask:
         monkeypatch.syspath_prepend(tmp_path)
 
         with isolate_apps(app_name) as apps:
-            monkeypatch.setattr(crontask, "apps", apps)
+            monkeypatch.setattr("crontask.apps", apps)
             with pytest.raises(error, match=message):
                 call_command("crontask", "--no-heartbeat")
 
     def test_load_tasks__optional_tasks(self, patch_launch, monkeypatch):
         with isolate_apps("django.contrib.sessions") as apps:
-            monkeypatch.setattr(crontask, "apps", apps)
+            monkeypatch.setattr("crontask.apps", apps)
             with io.StringIO() as stdout:
                 call_command("crontask", "--no-heartbeat", stdout=stdout)
                 assert "Loaded tasks" not in stdout.getvalue()

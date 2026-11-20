@@ -13,6 +13,7 @@
 - setup recurring tasks via crontab syntax
 - lightweight helpers build on top of [APScheduler]
 - [Sentry] cron monitor support
+- admin overview to inspect and enqueue cron tasks
 
 [![PyPi Version](https://img.shields.io/pypi/v/django-crontask.svg)](https://pypi.python.org/pypi/django-crontask/)
 [![Test Coverage](https://codecov.io/gh/codingjoe/django-crontask/branch/main/graph/badge.svg)](https://codecov.io/gh/codingjoe/django-crontask)
@@ -41,9 +42,12 @@ Add `crontask` to your `INSTALLED_APPS` in `settings.py`:
 # settings.py
 INSTALLED_APPS = [
     "crontask",
+    "crontask.contrib.admin",  # optional
     # ...
 ]
 ```
+
+![Cron task admin overview](https://github.com/codingjoe/django-crontask/raw/main/images/admin-overview.png)
 
 Finally, you launch the scheduler in a separate process:
 
