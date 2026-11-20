@@ -3,11 +3,9 @@ import signal
 import sys
 
 from apscheduler.triggers.interval import IntervalTrigger
-from django.apps import apps
 from django.core.management import BaseCommand
-from django.utils.module_loading import module_has_submodule
 
-from ... import conf, utils
+from ... import conf, load_tasks, utils
 
 try:
     from sentry_sdk import capture_exception
@@ -43,7 +41,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not options["no_task_loading"]:
-            self.load_tasks(options)
+            for app_name in load_tasks():
+                self.stdout.write(f"Loaded tasks from {self.style.NOTICE(app_name)}.")
         if not options["no_heartbeat"]:
             importlib.import_module("crontask.tasks")
             self.stdout.write("Scheduling heartbeat.")
@@ -85,24 +84,3 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(str(e)))
             self.stdout.write(self.style.NOTICE("Shutting down scheduler…"))
             scheduler.shutdown()
-
-    def load_tasks(self, options):
-        """
-        Load all tasks modules within installed apps.
-
-        If they are not imported, they will not have registered
-        their tasks with the scheduler.
-        """
-        for app in apps.get_app_configs():
-            if app.name == "crontask":
-                # Our heartbeat is loaded earlier
-                continue
-            if app.ready:
-                try:
-                    importlib.import_module(f"{app.name}.tasks")
-                    self.stdout.write(
-                        f"Loaded tasks from {self.style.NOTICE(app.name)}."
-                    )
-                except ImportError:
-                    if module_has_submodule(app.module, "tasks"):
-                        raise
