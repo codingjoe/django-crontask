@@ -62,6 +62,7 @@ dev = [
   { include-group = "test" },
 ]
 test = [
+  "docutils",
   "fakeredis[lua]",
   "pytest",
   "pytest-cov",

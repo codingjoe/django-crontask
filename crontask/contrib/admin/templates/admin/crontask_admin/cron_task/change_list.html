@@ -1,0 +1,101 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  {# Django 6.0 has no csp_nonce_attr tag, so render the nonce attribute conditionally. #}
+  <link
+    rel="stylesheet"
+    href="{% static "admin/css/changelists.css" %}"
+    {% if csp_nonce %}nonce="{{ csp_nonce }}"{% endif %}
+  >
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-list{% endblock %}
+
+{% block breadcrumbs %}
+  <ol class="breadcrumbs">
+    <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+    <li><a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a></li>
+    <li aria-current="page">{{ opts.verbose_name_plural|capfirst }}</li>
+  </ol>
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    <div class="module" id="changelist">
+      <div class="changelist-form-container">
+        <div>
+          <form id="changelist-form" method="post" novalidate>
+            {% csrf_token %}
+            {% if has_enqueue_permission %}
+              {% include "admin/actions.html" %}
+            {% endif %}
+            <div class="results">
+              <table id="result_list">
+                <thead>
+                  <tr>
+                    {% if has_enqueue_permission %}
+                      <th scope="col" class="action-checkbox-column">
+                        <div class="text"><span></span></div>
+                        <div class="clear"></div>
+                      </th>
+                    {% endif %}
+                    <th scope="col">
+                      <div class="text"><span>{% translate 'task'|capfirst context "noun" %}</span></div>
+                      <div class="clear"></div>
+                    </th>
+                    <th scope="col">
+                      <div class="text"><span>{% translate 'schedule'|capfirst context "noun" %}</span></div>
+                      <div class="clear"></div>
+                    </th>
+                    <th scope="col">
+                      <div class="text"><span>{% translate 'next enqueue'|capfirst context "noun" %}</span></div>
+                      <div class="clear"></div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for overview in overviews %}
+                    <tr>
+                      {% if has_enqueue_permission %}
+                        <td class="action-checkbox">
+                          <input
+                            type="checkbox"
+                            name="_selected_action"
+                            value="{{ overview.task_id }}"
+                            class="action-select"
+                            aria-label="{{ overview.task_id }}"
+                          >
+                        </td>
+                      {% endif %}
+                      <th scope="row">
+                        <a href="{% url detail_url_name overview.task_id %}">{{ overview.task_id_prefix }}<strong
+                          >{{ overview.task.name }}</strong></a>
+                      </th>
+                      <td><code>{{ overview.trigger }}</code></td>
+                      <td>
+                        {% if overview.next_enqueue_at %}
+                          <time
+                            datetime="{{ overview.next_enqueue_at.isoformat }}"
+                            title="{{ overview.next_enqueue_at.isoformat }}"
+                          >{{ overview.next_enqueue_at|date:"DATETIME_FORMAT" }}</time>
+                        {% else %}-{% endif %}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="{% if has_enqueue_permission %}4{% else %}3{% endif %}">
+                        {% translate 'No cron tasks registered.' %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

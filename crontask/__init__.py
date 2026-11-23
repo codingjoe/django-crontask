@@ -1,5 +1,6 @@
 """Cron style scheduler for Django's task framework."""
 
+import importlib
 import typing
 from unittest.mock import Mock
 
@@ -7,13 +8,15 @@ from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
+from django.apps import apps
 from django.tasks import Task
 from django.utils import timezone
+from django.utils.module_loading import module_has_submodule
 
 from . import _version
 from .contrib import sentry
 
-__all__ = ["VERSION", "__version__", "cron", "scheduler"]
+__all__ = ["VERSION", "__version__", "cron", "load_tasks", "scheduler"]
 
 __version__ = _version.version
 VERSION = _version.version_tuple
@@ -93,3 +96,20 @@ def cron(
         return task
 
     return decorator
+
+
+def load_tasks() -> list[str]:
+    """Import all tasks modules within installed apps and return their app names."""
+    loaded_app_names = []
+    for app_config in apps.get_app_configs():
+        if app_config.name == "crontask":
+            # The heartbeat is loaded separately by the scheduler command.
+            continue
+        try:
+            importlib.import_module(f"{app_config.name}.tasks")
+        except ImportError:
+            if module_has_submodule(app_config.module, "tasks"):
+                raise
+        else:
+            loaded_app_names.append(app_config.name)
+    return loaded_app_names
