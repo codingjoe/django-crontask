@@ -30,9 +30,10 @@
 You need to have [Django's Task framework][django-tasks] setup properly.
 
 ```ShellSession
-python3 -m pip install django-crontask
+uv add django-crontask
 # or
-python3 -m pip install django-crontask[sentry]  # with sentry cron monitor support
+uv add django-crontask[sentry]  # with sentry cron monitor support
+uv add --group dev django-crontask[tui]  # with the terminal task overview
 ```
 
 Add `crontask` to your `INSTALLED_APPS` in `settings.py`:
@@ -48,8 +49,16 @@ INSTALLED_APPS = [
 Finally, you launch the scheduler in a separate process:
 
 ```ShellSession
-python3 manage.py crontask
+uv run manage.py crontask
 ```
+
+In an interactive terminal, the command opens the task overview:
+
+![Cron task overview](https://github.com/codingjoe/django-crontask/raw/main/images/tui.svg)
+
+The overview opens when both `stdin` and `stdout` are terminals; `e` enqueues the
+selected task and `q` quits. Redirected output keeps the blocking scheduler, and
+a missing `tui` extra warns and falls back to it.
 
 ### Setup Redis as a lock backend (optional)
 
@@ -129,7 +138,7 @@ def my_task_without_sentry(): ...
 ### The crontask command
 
 ```ShellSession
-$ python3 manage.py crontask --help
+$ uv run manage.py crontask --help
 usage: manage.py crontask [-h] [--no-task-loading] [--no-heartbeat] [--version] [-v {0,1,2,3}]
                          [--settings SETTINGS] [--pythonpath PYTHONPATH] [--traceback] [--no-color]
                          [--force-color] [--skip-checks]

@@ -2,6 +2,7 @@ import importlib
 import signal
 import sys
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from django.apps import apps
 from django.core.management import BaseCommand
@@ -52,7 +53,10 @@ class Command(BaseCommand):
                 self.stdout.write("Acquiring lock…")
             # Lock scheduler to prevent multiple instances from running.
             with utils.lock as lock:
-                self.launch_scheduler(lock, scheduler)
+                if sys.stdin.isatty() and sys.stdout.isatty():
+                    self.launch_inspector(lock, scheduler)
+                else:
+                    self.launch_scheduler(lock, scheduler)
         except utils.LockNotOwnedError as e:
             capture_exception(e)
             self.stderr.write(
@@ -61,6 +65,45 @@ class Command(BaseCommand):
         except utils.LockError as e:
             capture_exception(e)
             self.stderr.write("Another scheduler is already running.")
+
+    def add_lock_refresh_job(self, lock, scheduler):
+        scheduler.add_job(
+            utils.extend_lock,
+            IntervalTrigger(seconds=conf.get_settings().LOCK_REFRESH_INTERVAL),
+            args=(lock, scheduler),
+            name="crontask.utils.lock.extend",
+        )
+
+    def launch_inspector(self, lock, scheduler):
+        try:
+            from ...inspector.app import InspectorApp
+        except ModuleNotFoundError as e:
+            if e.name != "textual":
+                raise
+            self.stderr.write(
+                self.style.WARNING(
+                    "Textual is not installed. "
+                    "Install it with `uv add --group dev django-crontask[tui]`."
+                )
+            )
+            return self.launch_scheduler(lock, scheduler)
+        background = BackgroundScheduler()
+        for job in scheduler.get_jobs():
+            background.add_job(
+                job.func,
+                job.trigger,
+                args=job.args,
+                kwargs=job.kwargs,
+                id=job.id,
+                name=job.name,
+            )
+        self.add_lock_refresh_job(lock, background)
+        background.start()
+        try:
+            InspectorApp(scheduler=background).run()
+        finally:
+            if background.running:
+                background.shutdown()
 
     def launch_scheduler(self, lock, scheduler):
         match sys.platform:
@@ -71,14 +114,7 @@ class Command(BaseCommand):
         signal.signal(signal.SIGTERM, kill_softly)
         signal.signal(signal.SIGINT, kill_softly)
         self.stdout.write(self.style.SUCCESS("Starting scheduler…"))
-        # Periodically extend TTL of lock if needed
-        # https://redis-py.readthedocs.io/en/stable/lock.html#redis.lock.Lock.extend
-        scheduler.add_job(
-            utils.extend_lock,
-            IntervalTrigger(seconds=conf.get_settings().LOCK_REFRESH_INTERVAL),
-            args=(lock, scheduler),
-            name="crontask.utils.lock.extend",
-        )
+        self.add_lock_refresh_job(lock, scheduler)
         try:
             scheduler.start()
         except KeyboardInterrupt as e:
