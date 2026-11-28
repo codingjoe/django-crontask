@@ -1,13 +1,18 @@
+import builtins
 import io
 import signal
 import sys
 from unittest.mock import Mock, patch
 
 import pytest
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from crontask import utils
 from crontask.management.commands import crontask
 from django.core.management import call_command
 from django.test.utils import isolate_apps
+
+from tests.testapp.tasks import my_task
 
 
 def test_kill_softly():
@@ -180,3 +185,109 @@ class Testcrontask:
             assert not any(
                 sig == getattr(signal, "SIGHUP", None) for sig in signal_calls
             )
+
+    @pytest.mark.parametrize(
+        ("stdin_tty", "stdout_tty", "expected"),
+        [
+            (True, True, "launch_inspector"),
+            (True, False, "launch_scheduler"),
+            (False, True, "launch_scheduler"),
+            (False, False, "launch_scheduler"),
+        ],
+    )
+    def test_tty_routing(self, monkeypatch, stdin_tty, stdout_tty, expected):
+        launched = []
+        monkeypatch.setattr(
+            crontask.Command,
+            "launch_inspector",
+            lambda self, lock, scheduler: launched.append("launch_inspector"),
+        )
+        monkeypatch.setattr(
+            crontask.Command,
+            "launch_scheduler",
+            lambda self, lock, scheduler: launched.append("launch_scheduler"),
+        )
+        monkeypatch.setattr(sys, "stdin", FakeTTY() if stdin_tty else io.StringIO())
+        monkeypatch.setattr(sys, "stdout", FakeTTY() if stdout_tty else io.StringIO())
+        with io.StringIO() as stdout:
+            call_command("crontask", stdout=stdout)
+        assert launched == [expected]
+
+    @pytest.mark.parametrize("shutdown_during_run", [False, True])
+    def test_launch_inspector(self, monkeypatch, shutdown_during_run):
+        source = BlockingScheduler()
+        source.add_job(
+            my_task.enqueue,
+            IntervalTrigger(minutes=5),
+            id="my-task",
+            name="my-task",
+        )
+        created = []
+
+        class StubInspectorApp:
+            def __init__(self, scheduler):
+                self.scheduler = scheduler
+                self.jobs = scheduler.get_jobs()
+                created.append(self)
+
+            def run(self):
+                self.running_during_run = self.scheduler.running
+                if shutdown_during_run:
+                    self.scheduler.shutdown()
+
+        monkeypatch.setattr("crontask.inspector.app.InspectorApp", StubInspectorApp)
+        crontask.Command().launch_inspector(utils.FakeLock(), source)
+        (app,) = created
+        assert app.running_during_run is True
+        assert app.scheduler.running is False
+        jobs = {job.name: job for job in app.jobs}
+        assert jobs["my-task"].id == "my-task"
+        assert "crontask.utils.lock.extend" in jobs
+
+
+class FakeTTY(io.StringIO):
+    def isatty(self):
+        return True
+
+
+def block_textual_import(monkeypatch, missing_name):
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "textual" or name.startswith("textual."):
+            raise ModuleNotFoundError(name=missing_name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    monkeypatch.delitem(sys.modules, "crontask.inspector.app", raising=False)
+
+
+def test_launch_inspector__textual_missing(monkeypatch):
+    block_textual_import(monkeypatch, "textual")
+    launched = []
+    monkeypatch.setattr(
+        crontask.Command,
+        "launch_scheduler",
+        lambda self, lock, scheduler: launched.append(scheduler),
+    )
+    command = crontask.Command()
+    stderr = io.StringIO()
+    command.stderr = stderr
+    source = BlockingScheduler()
+    command.launch_inspector(utils.FakeLock(), source)
+    assert "Textual is not installed." in stderr.getvalue()
+    assert "django-crontask[tui]" in stderr.getvalue()
+    assert launched == [source]
+
+
+def test_launch_inspector__other_import_error(monkeypatch):
+    block_textual_import(monkeypatch, "other")
+    monkeypatch.setattr(
+        crontask.Command,
+        "launch_scheduler",
+        lambda self, lock, scheduler: pytest.fail("unexpected fallback"),
+    )
+    command = crontask.Command()
+    with pytest.raises(ModuleNotFoundError) as exc_info:
+        command.launch_inspector(utils.FakeLock(), BlockingScheduler())
+    assert exc_info.value.name == "other"

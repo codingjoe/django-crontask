@@ -157,7 +157,7 @@ class InspectorApp(App):
     @property
     def selected(self) -> CronTaskOverview | None:
         table = self.query_one(DataTable)
-        if not self.overviews or not table.row_count:
+        if not self.overviews:
             return None
         return self.overviews.get(table.ordered_rows[table.cursor_row].key.value)
 

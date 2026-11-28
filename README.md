@@ -52,7 +52,13 @@ Finally, you launch the scheduler in a separate process:
 uv run manage.py crontask
 ```
 
+In an interactive terminal, the command opens the task overview:
+
 ![Cron task overview](https://github.com/codingjoe/django-crontask/raw/main/images/tui.svg)
+
+The overview opens when both `stdin` and `stdout` are terminals; `e` enqueues the
+selected task and `q` quits. Redirected output keeps the blocking scheduler, and
+a missing `tui` extra warns and falls back to it.
 
 ### Setup Redis as a lock backend (optional)
 
