@@ -178,15 +178,15 @@ class InspectorApp(App):
         self.update_detail()
 
     def update_detail(self) -> None:
-        if (overview := self.selected) is None:
-            text = "No cron tasks registered."
-        else:
+        if overview := self.selected:
             text = (
                 f"Task: {overview.task.module_path}\n"
                 f"Schedule: {overview.job.trigger}\n"
                 f"Next enqueue: {overview.next_enqueue_iso}\n\n"
                 f"{inspect.getdoc(overview.task.func) or ''}"
             )
+        else:
+            text = "No cron tasks registered."
         if self._detail_text != text:
             self._detail_text = text
             self.query_one("#detail", Static).update(text)
